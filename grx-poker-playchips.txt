@@ -1,0 +1,14 @@
+grx-poker-playchips/
+├─ index.html
+├─ README.txt
+├─ assets/
+│  ├─ css/
+│  │  └─ style.css
+│  ├─ js/
+│  │  └─ app.js
+│  ├─ img/
+│  │  └─ (optional images)
+│  ├─ video/
+│  │  └─ (optional mp4/webm)
+│  └─ audio/
+│     └─ (optional sfx)

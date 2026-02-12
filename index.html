@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GRX PlayChips Poker • Vegas Edition</title>
+  <meta name="description" content="Online multiplayer poker, blackjack, slots. Play chips only. Vegas energy. No cash, no wagering." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body class="vegas-theme">
+  <!-- Boot video overlay: auto-plays on load. Uses assets/video/boot.mp4 -->
+  <div class="boot-video-overlay" id="bootVideoOverlay" aria-hidden="false" aria-label="Intro video">
+    <video id="bootVideo" class="boot-video" autoplay muted playsinline preload="auto">
+      <source src="assets/video/boot.mp4" type="video/mp4">
+    </video>
+    <button class="boot-unmute" id="btnBootUnmute" type="button" aria-label="Unmute video" title="Click for sound">🔇</button>
+    <button class="boot-skip" id="btnSkipBoot" type="button" aria-label="Skip intro">Skip intro</button>
+  </div>
+
+  <div class="bg-canvas">
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+    <div class="bg-particles" id="bgParticles" aria-hidden="true"></div>
+  </div>
+
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <header class="topbar" role="banner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <span class="brand-mark-inner"></span>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">GRX <span class="brand-vegas">PLAYCHIPS</span> POKER</div>
+        <div class="brand-sub">Online multiplayer • Las Vegas • chips only • no cash</div>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="btn ghost btn-icon" id="btnHelp" type="button">
+        <span class="btn-icon-svg">?</span>
+        How it works
+      </button>
+      <button class="btn ghost btn-icon" id="btnSettings" type="button">
+        <span class="btn-icon-svg">⚙</span>
+        Settings
+      </button>
+      <button class="btn ghost btn-icon" id="btnTheme" type="button" aria-label="Toggle theme">
+        <span class="btn-icon-svg theme-icon" id="themeIcon">🌙</span>
+        <span class="btn-theme-label">Day / Night</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: Lobby -->
+    <section class="panel lobby panel-animate">
+      <div class="panel-head">
+        <h2>Lobby</h2>
+        <div class="pill pill-pulse" id="netStatus">
+          <span class="pill-dot"></span>
+          online • multiplayer
+        </div>
+      </div>
+
+      <div class="card card-hover">
+        <div class="row">
+          <div>
+            <div class="label">Player</div>
+            <div class="value" id="playerName">Guest</div>
+          </div>
+          <div class="right">
+            <div class="label">Chips</div>
+            <div class="value chips chip-display chip-clickable" id="chipBalance" title="Click to copy">
+              <span class="chip-value" data-value="10000">10,000</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row tight">
+          <button class="btn primary btn-shine" id="btnRequestChips" type="button" title="Ask banker for chips">Request Chips</button>
+          <button class="btn btn-shine" id="btnDailyBonus" type="button" title="Claim daily bonus (24h cooldown)">
+            <span>Daily Bonus</span>
+            <span class="daily-cooldown" id="dailyCooldown"></span>
+          </button>
+        </div>
+        <div class="row tight">
+          <button class="btn small btn-shine" id="btnToTable" type="button" title="Move 500 chips to table">→ Table</button>
+          <button class="btn small btn-shine" id="btnToWallet" type="button" title="Move 500 chips to wallet">← Wallet</button>
+        </div>
+
+        <div class="note chip-note" id="chipNote">
+          Play-chips only. No cash, no wagering, no withdrawals.
+        </div>
+      </div>
+
+      <div class="card card-hover">
+        <div class="panel-subhead">
+          <h3>Choose Your Game</h3>
+          <div class="mini">join online multiplayer table</div>
+        </div>
+
+        <div class="game-list" id="gameList">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <div class="card card-hover">
+        <div class="panel-subhead">
+          <h3>Banker</h3>
+          <div class="panel-subhead-actions">
+            <span class="mini">friendly villain mode</span>
+            <button class="btn ghost btn-tiny" id="btnClearLog" type="button" title="Clear activity log">Clear log</button>
+          </div>
+        </div>
+
+        <div class="banker">
+          <div class="banker-face" aria-hidden="true">
+            <span class="banker-face-shine"></span>
+          </div>
+          <div class="banker-text">
+            <div class="banker-line" id="bankerLine">"You want chips? Make me laugh."</div>
+            <div class="banker-actions">
+              <button class="btn small btn-shine" id="btnCompliment" type="button">Send a nice message</button>
+              <button class="btn small btn-shine" id="btnGrovel" type="button">Beg for chips</button>
+              <button class="btn small danger btn-shine" id="btnBankerMode" type="button">Toggle Banker Mood</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="log" id="activityLog" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- CENTER: Table -->
+    <section class="panel tablewrap panel-animate" id="tableWrap" data-game-id="holdem">
+      <div class="game-banner" id="gameBanner">
+        <div class="game-banner-icon" id="gameBannerIcon">🃏</div>
+        <div class="game-banner-text">
+          <h2 class="game-banner-title" id="gameBannerTitle">Texas Hold'em</h2>
+          <p class="game-banner-tagline" id="gameBannerTagline">Online multiplayer • 2 hole + 5 community</p>
+        </div>
+        <div class="game-banner-meta" id="gameBannerMeta">Stakes: Chips</div>
+      </div>
+
+      <div class="table" id="pokerTable">
+        <div class="table-ring table-ring-animate"></div>
+        <div class="table-felt"></div>
+
+        <div class="dealer dealer-animate">
+          <div class="dealer-dot"></div>
+          <div class="dealer-text">Dealer</div>
+        </div>
+
+        <div class="community">
+          <div class="slot card-slot" id="c1" data-index="0"></div>
+          <div class="slot card-slot" id="c2" data-index="1"></div>
+          <div class="slot card-slot" id="c3" data-index="2"></div>
+          <div class="slot card-slot" id="c4" data-index="3"></div>
+          <div class="slot card-slot" id="c5" data-index="4"></div>
+        </div>
+
+        <div class="you">
+          <div class="hand" id="playerHand">
+            <div class="cardface card-flip" id="p1">
+              <span class="card-front">?</span>
+            </div>
+            <div class="cardface card-flip" id="p2">
+              <span class="card-front">?</span>
+            </div>
+            <div class="cardface card-flip" id="p3" style="display:none">
+              <span class="card-front">?</span>
+            </div>
+            <div class="cardface card-flip" id="p4" style="display:none">
+              <span class="card-front">?</span>
+            </div>
+          </div>
+          <div class="you-meta">
+            <div class="you-name" id="youName">You</div>
+            <div class="you-chips"><span class="dim">Stack:</span> <span class="chip-value" id="youStack">2,000</span></div>
+          </div>
+        </div>
+
+        <div class="fx">
+          <div class="dice" id="dice1" aria-hidden="true" data-value="1">⚀</div>
+          <div class="dice" id="dice2" aria-hidden="true" data-value="1">⚀</div>
+        </div>
+      </div>
+
+      <!-- Blackjack (shown when Blackjack selected) -->
+      <div class="blackjack-machine" id="blackjackMachine" hidden>
+        <div class="blackjack-table">
+          <div class="blackjack-header">🂡 BLACKJACK</div>
+          <div class="blackjack-dealer">
+            <span class="blackjack-label">Dealer</span>
+            <div class="blackjack-hand" id="bjDealerHand"></div>
+            <span class="blackjack-total" id="bjDealerTotal"></span>
+          </div>
+          <div class="blackjack-result" id="bjResult"></div>
+          <div class="blackjack-player">
+            <span class="blackjack-label">You</span>
+            <div class="blackjack-hand" id="bjPlayerHand"></div>
+            <span class="blackjack-total" id="bjPlayerTotal"></span>
+          </div>
+          <div class="blackjack-controls">
+            <div class="blackjack-bet-row">
+              <span class="blackjack-label">Bet:</span>
+              <button class="btn small blackjack-bet-btn" data-bet="100" type="button">100</button>
+              <button class="btn small blackjack-bet-btn" data-bet="250" type="button">250</button>
+              <button class="btn small blackjack-bet-btn" data-bet="500" type="button">500</button>
+              <button class="btn small blackjack-bet-btn" data-bet="1000" type="button">1000</button>
+            </div>
+            <div class="blackjack-actions">
+              <button class="btn primary btn-shine" id="btnBjDeal" type="button">Deal</button>
+              <button class="btn btn-shine" id="btnBjHit" type="button" disabled>Hit</button>
+              <button class="btn btn-shine" id="btnBjStand" type="button" disabled>Stand</button>
+              <button class="btn btn-shine" id="btnBjDouble" type="button" disabled>Double</button>
+            </div>
+          </div>
+          <div class="blackjack-balance">Chips: <span id="bjBalance">0</span></div>
+        </div>
+      </div>
+
+      <!-- Slot Machine (shown when Slots selected) -->
+      <div class="slots-machine" id="slotsMachine" hidden>
+        <div class="slots-cabinet">
+          <div class="slots-header">🎰 VEGAS SLOTS</div>
+          <div class="slots-reels">
+            <div class="slots-reel" id="slotsReel1"><span class="slots-sym" data-sym="7">7</span></div>
+            <div class="slots-bar"></div>
+            <div class="slots-reel" id="slotsReel2"><span class="slots-sym" data-sym="bar">BAR</span></div>
+            <div class="slots-bar"></div>
+            <div class="slots-reel" id="slotsReel3"><span class="slots-sym" data-sym="cherry">🍒</span></div>
+            <div class="slots-bar"></div>
+            <div class="slots-reel" id="slotsReel4"><span class="slots-sym" data-sym="7">7</span></div>
+            <div class="slots-bar"></div>
+            <div class="slots-reel" id="slotsReel5"><span class="slots-sym" data-sym="lemon">🍋</span></div>
+          </div>
+          <div class="slots-result" id="slotsResult"></div>
+          <div class="slots-controls">
+            <div class="slots-bet-row">
+              <span class="slots-label">Bet:</span>
+              <button class="btn small slots-bet-btn" data-bet="50" type="button">50</button>
+              <button class="btn small slots-bet-btn" data-bet="100" type="button">100</button>
+              <button class="btn small slots-bet-btn" data-bet="250" type="button">250</button>
+              <button class="btn small slots-bet-btn" data-bet="500" type="button">500</button>
+            </div>
+            <button class="btn primary slots-spin-btn" id="btnSlotsSpin" type="button" disabled>SPIN</button>
+          </div>
+          <div class="slots-balance">Chips: <span id="slotsBalance">0</span></div>
+        </div>
+      </div>
+
+      <div class="poker-status" id="pokerStatus">
+        <div class="poker-pot">Pot: <span id="pokerPot">0</span></div>
+        <div class="poker-bet">Bet: <span id="pokerCurrentBet">0</span></div>
+        <div class="poker-round" id="pokerRound">—</div>
+      </div>
+
+      <div class="controls" id="pokerControls">
+        <button class="btn primary btn-shine" id="btnPokerDeal" type="button">Deal Hand</button>
+        <button class="btn btn-shine" id="btnPokerFold" type="button" disabled>Fold</button>
+        <button class="btn btn-shine" id="btnPokerCheck" type="button" disabled>Check</button>
+        <button class="btn btn-shine" id="btnPokerCall" type="button" disabled>Call <span id="callAmt"></span></button>
+        <button class="btn primary btn-shine" id="btnPokerRaise" type="button" disabled>Raise</button>
+        <button class="btn danger btn-shine" id="btnResetTable" type="button" title="Reset table (R)">New Game</button>
+      </div>
+
+      <div class="footer-hint">
+        Press <kbd>N</kbd> Quick Deal • <kbd>R</kbd> Reset • <kbd>?</kbd> Help — What happens here stays here 🎲
+      </div>
+    </section>
+
+    <!-- RIGHT: Overview -->
+    <section class="panel rightcol panel-animate">
+      <div class="panel-head">
+        <h2>Overview</h2>
+        <div class="pill pill-glow">Online Multiplayer</div>
+      </div>
+
+      <div class="card card-hover">
+        <h3>Welcome</h3>
+        <p class="p">
+          Online multiplayer poker, blackjack, and slots. Join live tables, play with chips only—
+          no cash, no wagering. Lobby, chip wallet, and Vegas theme.
+        </p>
+        <div class="video-box">
+          <video id="welcomeVideo" controls playsinline preload="metadata">
+            <source src="assets/video/boot.mp4" type="video/mp4">
+            Your browser can't play the video.
+          </video>
+          <div class="video-note">Same intro as boot — assets/video/boot.mp4</div>
+        </div>
+      </div>
+
+      <div class="card card-hover">
+        <h3>Quick Jump</h3>
+        <div class="module-grid">
+          <div class="module-tile module-tile-hover" data-game="holdem" title="Jump to Texas Hold'em">🃏 Hold'em</div>
+          <div class="module-tile module-tile-hover" data-game="blackjack" title="Jump to Blackjack">🂡 Blackjack</div>
+          <div class="module-tile module-tile-hover" data-game="slots" title="Jump to Slot Machines">🎰 Slots</div>
+          <div class="module-tile module-tile-hover" data-game="omaha" title="Jump to Omaha">♦ Omaha</div>
+          <div class="module-tile module-tile-hover" data-game="stud" title="Jump to 7-Card Stud">♠ Stud</div>
+          <div class="module-tile module-tile-hover" data-game="tourney" title="Jump to Sit & Go">🏆 Sit & Go</div>
+          <div class="module-tile module-tile-hover module-coming" title="Coming soon">Friends</div>
+          <div class="module-tile module-tile-hover module-coming" title="Coming soon">Achievements</div>
+        </div>
+      </div>
+
+      <div class="card card-hover">
+        <h3>Play-Chips Rules</h3>
+        <ul class="ul">
+          <li>No cash. No payouts. No withdrawals.</li>
+          <li>Chips are for entertainment only.</li>
+          <li>Daily bonus + banker requests are just "fun economy".</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODALS -->
+  <dialog class="modal modal-animate" id="helpModal">
+    <div class="modal-head">
+      <h3>How it works</h3>
+      <button class="btn ghost btn-close" id="btnCloseHelp" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="p">
+        Online multiplayer poker, blackjack, and slots—play chips only. Join live tables,
+        play with others. No cash, no payouts, no withdrawals.
+      </p>
+      <div class="callout callout-glow">
+        Tip: keep "chips" language everywhere. Don't say "money", "wager", "deposit", "withdraw".
+      </div>
+      <h4 class="modal-sub">Keyboard shortcuts</h4>
+      <ul class="ul shortcuts-list">
+        <li><kbd>N</kbd> Quick Deal (full hand)</li>
+        <li><kbd>R</kbd> Reset table</li>
+        <li><kbd>?</kbd> This help</li>
+        <li><kbd>Esc</kbd> Close modal</li>
+      </ul>
+    </div>
+  </dialog>
+
+  <dialog class="modal modal-animate" id="settingsModal">
+    <div class="modal-head">
+      <h3>Settings</h3>
+      <button class="btn ghost btn-close" id="btnCloseSettings" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field">
+        <span>Player name</span>
+        <input id="inpName" type="text" placeholder="e.g., Zac" maxlength="20" autocomplete="username" />
+      </label>
+
+      <label class="field">
+        <span>Wallet chips</span>
+        <input id="inpStartChips" type="number" min="0" step="100" />
+      </label>
+      <label class="field">
+        <span>Table stack</span>
+        <input id="inpStack" type="number" min="0" step="100" />
+      </label>
+
+      <div class="row">
+        <button class="btn primary btn-shine" id="btnSaveSettings" type="button">Save</button>
+        <button class="btn danger btn-shine" id="btnWipeLocal" type="button">Reset Local Data</button>
+      </div>
+
+      <div class="note">
+        Settings are stored locally in your browser (localStorage).
+      </div>
+    </div>
+  </dialog>
+
+  <script src="assets/js/games.js"></script>
+  <script src="assets/js/poker-engine.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
