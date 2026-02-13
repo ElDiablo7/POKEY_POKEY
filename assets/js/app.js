@@ -202,9 +202,6 @@
 
   // Poker - Texas Hold'em full game loop
   const SB = 10, BB = 20, MIN_RAISE = 20;
-  let pokerDeck = [];
-  let playerHand = [];
-  let communityCards = [];
   let pokerState = {
     phase: 'idle',
     pot: 0,
