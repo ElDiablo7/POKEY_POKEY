@@ -2,7 +2,7 @@ GRX PlayChips Poker (v0.1 scaffold)
 
 - Chips-only. No cash. No wagering. No payouts.
 - Deploy as static site (Render, Netlify, Vercel, etc.)
-- Optional welcome video: assets/video/welcome.mp4
+- Optional boot intro video: assets/video/boot.mp4 (overlay hides automatically if missing)
 
 Run locally:
 - Open index.html in a browser
