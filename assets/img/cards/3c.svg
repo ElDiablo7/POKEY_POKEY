@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 112" width="80" height="112">
+  <rect width="80" height="112" rx="6" ry="6" fill="#fff" stroke="#333" stroke-width="1.5"/>
+  <text x="8" y="22" font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#1a1a1a">3</text>
+  <text x="8" y="38" font-family="Georgia, serif" font-size="18" fill="#1a1a1a">♣</text>
+  <text x="40" y="62" font-family="Georgia, serif" font-size="32" fill="#1a1a1a" text-anchor="middle">♣</text>
+  <text x="72" y="102" font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#1a1a1a" text-anchor="end" transform="rotate(180 72 102)">3</text>
+  <text x="72" y="86" font-family="Georgia, serif" font-size="18" fill="#1a1a1a" text-anchor="end" transform="rotate(180 72 86)">♣</text>
+</svg>

@@ -5,6 +5,9 @@
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 const SUITS = ['♠', '♥', '♦', '♣'];
 const SUIT_COLORS = { '♠': '', '♥': 'red', '♦': 'red', '♣': '' };
+const SUIT_CODE = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
+const RANK_FILE = { '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9', 'T': 't', 'J': 'j', 'Q': 'q', 'K': 'k', 'A': 'a' };
+const CARD_IMG_BASE = 'assets/img/cards';
 
 function createDeck() {
   const deck = [];
@@ -25,9 +28,23 @@ function shuffle(deck) {
   return d;
 }
 
-function formatCard(card) {
-  const c = card.color ? ` class="red"` : '';
-  return `<span${c}>${card.rank}${card.suit}</span>`;
+function getCardImageSrc(card, faceDown) {
+  if (faceDown) return CARD_IMG_BASE + '/back.svg';
+  const r = RANK_FILE[card.rank];
+  const s = SUIT_CODE[card.suit];
+  return r && s ? CARD_IMG_BASE + '/' + r + s + '.svg' : CARD_IMG_BASE + '/back.svg';
+}
+
+function formatCard(card, faceDown) {
+  if (faceDown === undefined) faceDown = false;
+  const src = getCardImageSrc(card, faceDown);
+  const alt = faceDown ? 'Card back' : cardToString(card);
+  const redClass = (card && card.color) ? ' card-red' : '';
+  return `<img class="card-img${redClass}" src="${src}" alt="${alt}" width="80" height="112" loading="lazy">`;
+}
+
+function formatCardBack() {
+  return `<img class="card-img" src="${CARD_IMG_BASE}/back.svg" alt="Card back" width="80" height="112" loading="lazy">`;
 }
 
 function cardToString(card) {

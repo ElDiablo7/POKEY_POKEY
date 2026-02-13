@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GRX PlayChips Poker • Vegas Edition</title>
   <meta name="description" content="Online multiplayer poker, blackjack, slots. Play chips only. Vegas energy. No cash, no wagering." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
@@ -187,8 +189,11 @@
         </div>
 
         <div class="fx">
-          <div class="dice" id="dice1" aria-hidden="true" data-value="1">⚀</div>
-          <div class="dice" id="dice2" aria-hidden="true" data-value="1">⚀</div>
+          <div class="dice-wrap">
+            <img class="dice-img" id="dice1" src="assets/img/dice/d1.svg" alt="Dice 1" width="48" height="48" data-value="1">
+            <img class="dice-img" id="dice2" src="assets/img/dice/d1.svg" alt="Dice 1" width="48" height="48" data-value="1">
+            <button class="btn small dice-roll-btn" id="btnRollDice" type="button" title="Roll dice">Roll Dice</button>
+          </div>
         </div>
       </div>
 
@@ -231,15 +236,15 @@
         <div class="slots-cabinet">
           <div class="slots-header">🎰 VEGAS SLOTS</div>
           <div class="slots-reels">
-            <div class="slots-reel" id="slotsReel1"><span class="slots-sym" data-sym="7">7</span></div>
+            <div class="slots-reel" id="slotsReel1"><img class="slots-sym-img" src="assets/img/slots/7.svg" alt="7" data-sym="7"></div>
             <div class="slots-bar"></div>
-            <div class="slots-reel" id="slotsReel2"><span class="slots-sym" data-sym="bar">BAR</span></div>
+            <div class="slots-reel" id="slotsReel2"><img class="slots-sym-img" src="assets/img/slots/bar.svg" alt="BAR" data-sym="BAR"></div>
             <div class="slots-bar"></div>
-            <div class="slots-reel" id="slotsReel3"><span class="slots-sym" data-sym="cherry">🍒</span></div>
+            <div class="slots-reel" id="slotsReel3"><img class="slots-sym-img" src="assets/img/slots/cherry.svg" alt="Cherry" data-sym="cherry"></div>
             <div class="slots-bar"></div>
-            <div class="slots-reel" id="slotsReel4"><span class="slots-sym" data-sym="7">7</span></div>
+            <div class="slots-reel" id="slotsReel4"><img class="slots-sym-img" src="assets/img/slots/7.svg" alt="7" data-sym="7"></div>
             <div class="slots-bar"></div>
-            <div class="slots-reel" id="slotsReel5"><span class="slots-sym" data-sym="lemon">🍋</span></div>
+            <div class="slots-reel" id="slotsReel5"><img class="slots-sym-img" src="assets/img/slots/lemon.svg" alt="Lemon" data-sym="lemon"></div>
           </div>
           <div class="slots-result" id="slotsResult"></div>
           <div class="slots-controls">

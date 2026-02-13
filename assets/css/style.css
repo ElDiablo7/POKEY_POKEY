@@ -486,32 +486,48 @@ body.vegas-theme {
 }
 
 .slot.has-card {
-  background: white;
-  border: 1px solid #ddd;
-  color: #222;
-  font-family: var(--font-mono);
-  font-weight: 600;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0;
+  overflow: hidden;
 }
+
+.slot.has-card .card-img { display: block; width: 100%; height: 100%; object-fit: fill; border-radius: 4px; }
 
 .cardface {
   width: 60px;
   height: 84px;
-  background: white;
-  border: 1px solid #ddd;
+  min-width: 60px;
+  min-height: 84px;
+  background: transparent;
+  border: none;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 1rem;
-  color: #222;
+  overflow: hidden;
+  padding: 0;
 }
 
+.cardface .card-front { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.cardface .card-front .card-img { width: 100%; height: 100%; object-fit: fill; border-radius: 4px; display: block; }
+
+.cardface.card-back .card-front { background: transparent; }
+.cardface.card-back .card-front .card-img { filter: none; }
+
+.card-img {
+  display: block;
+  width: 60px;
+  height: 84px;
+  object-fit: fill;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.card-red { color: #c41e3a; }
+
 .cardface.card-back {
-  background: linear-gradient(135deg, #1a365d, #2c5282);
-  color: white;
-  border-color: #1a365d;
+  background: transparent;
 }
 
 .you {
@@ -533,8 +549,12 @@ body.vegas-theme {
 .you-chips { font-size: 0.85rem; color: var(--text-dim); }
 .dim { color: var(--text-dim); }
 
-.fx { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-.dice { font-size: 3rem; }
+.fx { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: auto; }
+.dice-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.dice-img { width: 48px; height: 48px; display: block; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.1s; }
+.dice-img.rolling { animation: dice-roll 0.4s ease-in-out; }
+@keyframes dice-roll { 0% { transform: rotate(0deg) scale(1.1); } 50% { transform: rotate(180deg) scale(1.05); } 100% { transform: rotate(360deg) scale(1); } }
+.dice-roll-btn { pointer-events: auto; }
 
 /* Blackjack */
 .blackjack-machine, .slots-machine {
@@ -568,24 +588,20 @@ body.vegas-theme {
   min-height: 90px;
 }
 
-.blackjack-card {
+.blackjack-card,
+.blackjack-hand .card-img {
   width: 50px;
   height: 70px;
-  background: white;
-  border: 1px solid #ddd;
+  min-width: 50px;
+  min-height: 70px;
+  object-fit: fill;
   border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-weight: 600;
-  color: #222;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.blackjack-card.hidden {
-  background: linear-gradient(135deg, #1a365d, #2c5282);
-  color: white;
-}
+.blackjack-hand .card-img { display: block; }
+.blackjack-card { background: white; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: 600; color: #222; }
+.blackjack-card.hidden { background: linear-gradient(135deg, #1a365d, #2c5282); color: white; }
 
 .blackjack-total, .blackjack-result {
   margin-top: 8px;
@@ -615,8 +631,24 @@ body.vegas-theme {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  font-weight: 700;
+  overflow: hidden;
+}
+
+.slots-reel .slots-sym-img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  display: block;
+}
+
+.slots-reel.reel-spinning .slots-sym-img {
+  animation: reel-spin 0.5s ease-out;
+}
+
+@keyframes reel-spin {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-15px) scale(1.1); opacity: 0.6; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .slots-bar {

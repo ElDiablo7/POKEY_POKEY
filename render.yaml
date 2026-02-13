@@ -1,0 +1,7 @@
+# Render Blueprint: static site, no Node/npm build
+services:
+  - type: web
+    runtime: static
+    name: pokey-pokey
+    buildCommand: "echo 'Static site — no build'"
+    staticPublishPath: .
