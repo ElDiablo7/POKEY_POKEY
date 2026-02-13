@@ -94,6 +94,10 @@
     video?.addEventListener('ended', hideOverlay);
     video?.addEventListener('error', hideOverlay);
     video?.addEventListener('canplay', () => clearTimeout(fallback));
+    video?.addEventListener('playing', () => {
+      if (video) video.muted = false;
+      if (btnUnmute) btnUnmute.textContent = '🔊';
+    }, { once: true });
     video?.addEventListener('timeupdate', () => {
       if (video.duration && !isNaN(video.duration) && video.currentTime >= video.duration - BOOT_VIDEO_TRIM_END) {
         video.pause();
