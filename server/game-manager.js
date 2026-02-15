@@ -275,7 +275,8 @@ class Table {
     if (active.length <= 1) {
       const winnerSeat = active[0];
       if (winnerSeat != null) {
-        this.seats[winnerSeat].stack += this.pot;
+        const potAmount = this.pot;
+        this.seats[winnerSeat].stack += potAmount;
         this.phase = 'idle';
         this.pot = 0;
         this.turnSeat = null;
@@ -286,7 +287,7 @@ class Table {
               {
                 seatIndex: winnerSeat,
                 playerName: this.seats[winnerSeat].playerName,
-                amount: this.pot,
+                amount: potAmount,
                 hand: null,
                 holeCards: null,
               },
