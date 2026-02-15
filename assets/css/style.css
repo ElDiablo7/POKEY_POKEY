@@ -881,3 +881,68 @@ body.vegas-theme.day-theme {
   --bg-panel: #23262f;
   --accent-glow: rgba(232, 185, 35, 0.25);
 }
+
+/* Multiplayer lobby */
+.multiplayer-lobby {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.multiplayer-lobby .panel-subhead { margin-bottom: 0.5rem; }
+.multiplayer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.multiplayer-table-list .mini,
+.multiplayer-at-table .mini { margin-bottom: 0.25rem; }
+.multiplayer-tables {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.multiplayer-table-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.multiplayer-table-row .btn-join-table { flex-shrink: 0; }
+.multiplayer-roster {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+.multiplayer-seat { padding: 0.2rem 0; }
+.multiplayer-seat.empty { color: var(--text-dim); }
+.multiplayer-table-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Multiplayer opponents on table */
+.multiplayer-opponents {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  min-height: 60px;
+}
+.multiplayer-seat-at-table {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+.multiplayer-seat-at-table.folded { opacity: 0.7; }
+.multiplayer-seat-at-table .multiplayer-seat-name { font-weight: 600; }
+.multiplayer-seat-at-table .multiplayer-seat-stack { color: var(--text-dim); font-size: 0.8rem; }
+.multiplayer-seat-at-table .multiplayer-seat-folded { color: var(--danger); font-size: 0.8rem; }
+.multiplayer-seat-at-table .multiplayer-seat-cards { display: flex; gap: 2px; margin-top: 4px; }
+.multiplayer-seat-at-table .multiplayer-seat-cards .card-img { width: 48px; height: 67px; }
+.multiplayer-seat-at-table.showdown .multiplayer-seat-hand { color: var(--accent); font-size: 0.8rem; }

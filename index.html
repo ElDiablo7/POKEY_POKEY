@@ -110,6 +110,30 @@
         <div class="game-list" id="gameList">
           <!-- populated by JS -->
         </div>
+
+        <div class="multiplayer-lobby" id="multiplayerLobby">
+          <div class="panel-subhead">
+            <h3>Hold'em multiplayer</h3>
+            <span class="mini" id="multiplayerStatus">Disconnected</span>
+          </div>
+          <div class="multiplayer-actions" id="multiplayerActions">
+            <button class="btn small btn-shine" id="btnMpConnect" type="button">Connect</button>
+            <button class="btn small btn-shine" id="btnMpCreateTable" type="button" disabled>Create table</button>
+            <button class="btn small btn-shine" id="btnMpListTables" type="button" disabled>Refresh list</button>
+          </div>
+          <div class="multiplayer-table-list" id="multiplayerTableList" hidden>
+            <div class="mini">Tables</div>
+            <ul class="multiplayer-tables" id="multiplayerTables"></ul>
+          </div>
+          <div class="multiplayer-at-table" id="multiplayerAtTable" hidden>
+            <div class="mini">Table: <span id="multiplayerTableName"></span></div>
+            <ul class="multiplayer-roster" id="multiplayerRoster"></ul>
+            <div class="multiplayer-table-actions">
+              <button class="btn small primary btn-shine" id="btnMpStartHand" type="button">Start hand</button>
+              <button class="btn small btn-shine" id="btnMpLeaveTable" type="button">Leave table</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="card card-hover">
@@ -168,6 +192,10 @@
         <div class="dealer dealer-animate">
           <div class="dealer-dot"></div>
           <div class="dealer-text">Dealer</div>
+        </div>
+
+        <div class="multiplayer-opponents" id="multiplayerOpponents" hidden aria-label="Other players at table">
+          <!-- Filled by JS when in multiplayer -->
         </div>
 
         <div class="community">
@@ -391,5 +419,6 @@
   <script src="assets/js/games.js"></script>
   <script src="assets/js/poker-engine.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/multiplayer.js"></script>
 </body>
 </html>
