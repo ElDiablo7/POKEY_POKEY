@@ -487,11 +487,14 @@
 
   // Blackjack
   let bjDeck = [];
-  let bjPlayerHand = [];
+  let bjPlayerHands = [];
+  let bjCurrentHandIndex = 0;
   let bjDealerHand = [];
   let bjBet = 0;
+  let bjBetPerHand = [];
   let bjBalance = 0;
   let bjDealt = false;
+  let bjSplitMode = false;
 
   function bjTotal(hand) {
     let total = 0;
@@ -506,6 +509,20 @@
     return total;
   }
 
+  function bjRankValue(r) {
+    return ['K', 'Q', 'J', 'T'].includes(r) ? 10 : (r === 'A' ? 11 : parseInt(r, 10));
+  }
+
+  function bjCanSplit() {
+    if (!bjSplitMode && bjPlayerHands.length === 1 && bjPlayerHands[0].length === 2) {
+      const h = bjPlayerHands[0];
+      const v0 = bjRankValue(h[0].rank);
+      const v1 = bjRankValue(h[1].rank);
+      return v0 === v1 && bjBalance >= bjBet;
+    }
+    return false;
+  }
+
   function bjIsNatural(hand) {
     return hand.length === 2 && bjTotal(hand) === 21;
   }
@@ -516,15 +533,34 @@
     const pT = document.getElementById('bjPlayerTotal');
     const dT = document.getElementById('bjDealerTotal');
     const bal = document.getElementById('bjBalance');
-    if (pH) pH.innerHTML = bjPlayerHand.map(c => typeof formatCard === 'function' ? formatCard(c) : `<span class="blackjack-card">${c.rank}${c.suit}</span>`).join('');
+    const fmt = c => typeof formatCard === 'function' ? formatCard(c) : `<span class="blackjack-card">${c.rank}${c.suit}</span>`;
+    if (pH) {
+      if (bjSplitMode && bjPlayerHands.length === 2) {
+        pH.innerHTML = bjPlayerHands.map((hand, i) => {
+          const active = i === bjCurrentHandIndex;
+          return `<div class="blackjack-hand-split ${active ? 'active' : ''}"><span class="blackjack-hand-label">Hand ${i + 1}</span><div class="blackjack-hand">${hand.map(fmt).join('')}</div><span class="blackjack-hand-total">${bjTotal(hand)}</span></div>`;
+        }).join('');
+      } else {
+        const hand = bjPlayerHands[0] || [];
+        pH.innerHTML = hand.length ? hand.map(fmt).join('') : '';
+      }
+    }
     if (dH) dH.innerHTML = bjDealerHand.map((c, i) => {
       const hidden = !bjDealt && i === 1;
       if (typeof formatCard === 'function') return formatCard(c, hidden);
       return `<span class="blackjack-card ${hidden ? 'hidden' : ''}">${c.rank}${c.suit}</span>`;
     }).join('');
-    if (pT) pT.textContent = bjTotal(bjPlayerHand);
+    const currentHand = bjPlayerHands[bjCurrentHandIndex] || [];
+    if (pT) pT.textContent = bjSplitMode ? `Hand ${bjCurrentHandIndex + 1}: ${bjTotal(currentHand)}` : bjTotal(currentHand);
     if (dT) dT.textContent = bjDealt ? bjTotal(bjDealerHand) : (bjDealerHand[0] ? bjTotal([bjDealerHand[0]]) : '');
     if (bal) bal.textContent = bjBalance.toLocaleString();
+    const btnSplit = document.getElementById('btnBjSplit');
+    const btnHit = document.getElementById('btnBjHit');
+    const btnStand = document.getElementById('btnBjStand');
+    const btnDouble = document.getElementById('btnBjDouble');
+    if (btnSplit) btnSplit.disabled = !bjCanSplit();
+    if (btnHit) btnHit.disabled = !bjDealt || bjTotal(currentHand) >= 21;
+    if (btnDouble) btnDouble.disabled = !bjDealt || currentHand.length !== 2 || bjBalance < bjBet || bjTotal(currentHand) >= 21;
   }
 
   function bjDeal() {
@@ -532,7 +568,10 @@
     if (bjBalance < bjBet) { toast('Not enough chips'); return; }
     if (typeof createDeck === 'undefined' || typeof shuffle === 'undefined') return;
     bjDeck = shuffle(createDeck());
-    bjPlayerHand = bjDeck.splice(0, 2);
+    bjPlayerHands = [bjDeck.splice(0, 2)];
+    bjBetPerHand = [bjBet];
+    bjCurrentHandIndex = 0;
+    bjSplitMode = false;
     bjDealerHand = bjDeck.splice(0, 2);
     bjBalance -= bjBet;
     bjDealt = true;
@@ -541,47 +580,76 @@
     document.getElementById('btnBjDeal').disabled = true;
     document.getElementById('btnBjHit').disabled = false;
     document.getElementById('btnBjStand').disabled = false;
-    document.getElementById('btnBjDouble').disabled = bjPlayerHand.length !== 2 || bjBalance < bjBet;
+    document.getElementById('btnBjDouble').disabled = bjPlayerHands[0].length !== 2 || bjBalance < bjBet;
     bjRender();
-    if (bjTotal(bjPlayerHand) === 21) bjStand();
+    if (bjTotal(bjPlayerHands[0]) === 21) bjStand();
+  }
+
+  function bjSplit() {
+    if (!bjCanSplit()) return;
+    const hand = bjPlayerHands[0];
+    bjPlayerHands = [[hand[0]], [hand[1]]];
+    bjBetPerHand = [bjBet, bjBet];
+    bjPlayerHands[0].push(bjDeck.shift());
+    bjPlayerHands[1].push(bjDeck.shift());
+    bjBalance -= bjBet;
+    bjCurrentHandIndex = 0;
+    bjSplitMode = true;
+    saveState();
+    document.getElementById('btnBjSplit').disabled = true;
+    bjRender();
+    if (bjTotal(bjPlayerHands[0]) === 21) bjStand();
   }
 
   function bjHit() {
-    if (!bjDealt || bjTotal(bjPlayerHand) >= 21) return;
-    bjPlayerHand.push(bjDeck.shift());
+    if (!bjDealt) return;
+    const hand = bjPlayerHands[bjCurrentHandIndex];
+    if (!hand || bjTotal(hand) >= 21) return;
+    hand.push(bjDeck.shift());
     bjRender();
-    if (bjTotal(bjPlayerHand) > 21) bjStand();
+    if (bjTotal(hand) > 21) bjStand();
   }
 
   function bjStand() {
     if (!bjDealt) return;
+    if (bjSplitMode && bjCurrentHandIndex === 0 && bjPlayerHands.length === 2) {
+      bjCurrentHandIndex = 1;
+      bjRender();
+      if (bjTotal(bjPlayerHands[1]) >= 21) bjStand();
+      return;
+    }
     document.getElementById('btnBjHit').disabled = true;
     document.getElementById('btnBjStand').disabled = true;
     document.getElementById('btnBjDouble').disabled = true;
     while (bjTotal(bjDealerHand) < 17) bjDealerHand.push(bjDeck.shift());
     bjDealt = false;
     bjRender();
-    const pT = bjTotal(bjPlayerHand);
     const dT = bjTotal(bjDealerHand);
-    const playerNatural = bjIsNatural(bjPlayerHand);
     const dealerNatural = bjIsNatural(bjDealerHand);
-    let result = '';
-    if (pT > 21) result = 'Bust! You lose.';
-    else if (playerNatural && !dealerNatural) {
-      result = 'Blackjack! 3:2 payout!';
-      bjBalance += bjBet + Math.floor(bjBet * 1.5);
-    } else if (dealerNatural && !playerNatural) result = 'Dealer blackjack. You lose.';
-    else if (playerNatural && dealerNatural) { result = 'Push (both blackjack).'; bjBalance += bjBet; }
-    else if (dT > 21) { result = 'Dealer busts! You win!'; bjBalance += bjBet * 2; }
-    else if (pT > dT) { result = 'You win!'; bjBalance += bjBet * 2; }
-    else if (dT > pT) result = 'Dealer wins.';
-    else { result = 'Push.'; bjBalance += bjBet; }
-    document.getElementById('bjResult').textContent = result;
+    const results = [];
+    let totalWin = 0;
+    bjPlayerHands.forEach((hand, i) => {
+      const bet = bjBetPerHand[i] || bjBet;
+      const pT = bjTotal(hand);
+      const playerNatural = bjIsNatural(hand);
+      if (pT > 21) { results.push(`Hand ${i + 1}: Bust`); }
+      else if (playerNatural && !dealerNatural) {
+        results.push(`Hand ${i + 1}: Blackjack 3:2!`);
+        totalWin += bet + Math.floor(bet * 1.5);
+      } else if (dealerNatural && !playerNatural) { results.push(`Hand ${i + 1}: Lose`); }
+      else if (playerNatural && dealerNatural) { results.push(`Hand ${i + 1}: Push`); totalWin += bet; }
+      else if (dT > 21) { results.push(`Hand ${i + 1}: Win!`); totalWin += bet * 2; }
+      else if (pT > dT) { results.push(`Hand ${i + 1}: Win!`); totalWin += bet * 2; }
+      else if (dT > pT) { results.push(`Hand ${i + 1}: Lose`); }
+      else { results.push(`Hand ${i + 1}: Push`); totalWin += bet; }
+    });
+    bjBalance += totalWin;
+    document.getElementById('bjResult').textContent = results.join(' • ');
     document.getElementById('btnBjDeal').disabled = false;
     walletChips = bjBalance;
     saveState();
     updateChipDisplays();
-    toast(result);
+    toast(results.join(' • '));
   }
 
   function initBlackjack() {
@@ -600,13 +668,15 @@
     document.getElementById('btnBjHit')?.addEventListener('click', bjHit);
     document.getElementById('btnBjStand')?.addEventListener('click', bjStand);
     document.getElementById('btnBjDouble')?.addEventListener('click', () => {
-      if (bjPlayerHand.length !== 2 || bjBalance < bjBet) return;
+      const hand = bjPlayerHands[bjCurrentHandIndex];
+      if (!hand || hand.length !== 2 || bjBalance < bjBet || bjTotal(hand) >= 21) return;
       bjBalance -= bjBet;
-      bjBet *= 2;
-      bjPlayerHand.push(bjDeck.shift());
+      bjBetPerHand[bjCurrentHandIndex] = bjBet * 2;
+      hand.push(bjDeck.shift());
       bjRender();
       bjStand();
     });
+    document.getElementById('btnBjSplit')?.addEventListener('click', bjSplit);
   }
 
   // Slots
