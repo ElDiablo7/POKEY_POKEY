@@ -13,7 +13,9 @@
   let mySeatIndex = null;
   let lastTableState = null;
   let reconnectAttempts = 0;
-  const MAX_RECONNECT = 5;
+  let reconnectTimer = null;
+  const MAX_RECONNECT = 10;
+  const RECONNECT_DELAY_BASE = 1500;
 
   function send(msg) {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -34,15 +36,25 @@
       }
       ws.onopen = () => {
         reconnectAttempts = 0;
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
         dispatch('multiplayerConnected', {});
         resolve();
       };
       ws.onclose = () => {
-        dispatch('multiplayerDisconnected', {});
+        const hadTable = !!tableId;
+        dispatch('multiplayerDisconnected', { hadTable });
         if (tableId) {
           tableId = null;
           mySeatIndex = null;
           lastTableState = null;
+        }
+        if (reconnectAttempts < MAX_RECONNECT) {
+          reconnectAttempts++;
+          const delay = RECONNECT_DELAY_BASE * Math.min(reconnectAttempts, 5);
+          reconnectTimer = setTimeout(function () {
+            reconnectTimer = null;
+            connect().then(updateLobbyUI).catch(function () { updateLobbyUI(); });
+          }, delay);
         }
       };
       ws.onerror = () => reject(new Error('WebSocket error'));
@@ -175,7 +187,13 @@
     const listBtn = document.getElementById('btnMpListTables');
     const startBtn = document.getElementById('btnMpStartHand');
     const leaveBtn = document.getElementById('btnMpLeaveTable');
-    if (statusEl) statusEl.textContent = ws && ws.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected';
+    if (statusEl) {
+      statusEl.className = 'mini';
+      if (!ws) { statusEl.textContent = 'Disconnected'; statusEl.classList.add('multiplayer-status-disconnected'); }
+      else if (ws.readyState === WebSocket.CONNECTING) { statusEl.textContent = 'Connecting...'; statusEl.classList.add('multiplayer-status-connecting'); }
+      else if (ws.readyState === WebSocket.OPEN) { statusEl.textContent = 'Connected'; statusEl.classList.add('multiplayer-status-connected'); }
+      else { statusEl.textContent = reconnectAttempts > 0 ? 'Reconnecting...' : 'Disconnected'; statusEl.classList.add(reconnectAttempts > 0 ? 'multiplayer-status-reconnecting' : 'multiplayer-status-disconnected'); }
+    }
     if (connectBtn) connectBtn.disabled = ws && ws.readyState === WebSocket.CONNECTING;
     if (createBtn) createBtn.disabled = !ws || ws.readyState !== WebSocket.OPEN;
     if (listBtn) listBtn.disabled = !ws || ws.readyState !== WebSocket.OPEN;
@@ -267,6 +285,17 @@
         startHand();
       });
     }
+    var inviteBtn = document.getElementById('btnMpInvite');
+    if (inviteBtn) {
+      inviteBtn.addEventListener('click', function () {
+        var tid = getTableId();
+        if (!tid) return;
+        var url = location.origin + location.pathname + '?join=' + encodeURIComponent(tid);
+        navigator.clipboard && navigator.clipboard.writeText(url).then(function () {
+          window.dispatchEvent(new CustomEvent('multiplayerError', { detail: { message: 'Invite link copied!' } }));
+        }).catch(function () {});
+      });
+    }
     if (leaveBtn) {
       leaveBtn.addEventListener('click', function () {
         leaveTable();
@@ -289,5 +318,12 @@
     });
     window.addEventListener('multiplayerLeftTable', function () { updateLobbyUI(); });
     updateLobbyUI();
+    var joinParam = new URLSearchParams(location.search).get('join');
+    if (joinParam) {
+      connect().then(function () {
+        joinTable(joinParam, getPlayerName());
+        if (history.replaceState) history.replaceState({}, '', location.pathname);
+      }).catch(function () { updateLobbyUI(); });
+    }
   });
 })();

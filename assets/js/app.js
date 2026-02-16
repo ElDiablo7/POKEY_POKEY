@@ -368,6 +368,42 @@
     updatePokerUI();
   }
 
+  function cpuHandStrength(cpu, seatIdx) {
+    var cards = [...(cpu.hand || []), ...communityCards];
+    if (cards.length < 5) {
+      var h = cpu.hand || [];
+      if (h.length < 2) return 0;
+      var v0 = (typeof RANKS !== 'undefined' ? RANKS : '23456789TJQKA'.split('')).indexOf(h[0].rank) + 2;
+      var v1 = (typeof RANKS !== 'undefined' ? RANKS : '23456789TJQKA'.split('')).indexOf(h[1].rank) + 2;
+      var pair = h[0].rank === h[1].rank ? 1 : 0;
+      var suited = h[0].suit === h[1].suit ? 0.3 : 0;
+      var high = Math.max(v0, v1);
+      return (pair ? 2 : 0) + (high >= 12 ? 1.5 : high >= 10 ? 0.8 : 0) + suited;
+    }
+    var ev = typeof bestHand === 'function' ? bestHand(cards) : null;
+    return ev ? ev.rank + (ev.highCards && ev.highCards[0] ? ev.highCards[0] / 20 : 0) : 0;
+  }
+
+  function cpuDecide(seatIdx, toCall) {
+    var cpu = pokerState.cpuPlayers[seatIdx];
+    var name = CPU_NAMES[seatIdx];
+    var strength = cpuHandStrength(cpu, seatIdx);
+    var potOdds = toCall <= 0 ? 1 : pokerState.pot / (pokerState.pot + toCall);
+    var personality = name === 'Chip' ? 'tight' : name === 'Ace' ? 'aggro' : 'loose';
+    if (toCall === 0) return 'check';
+    var foldChance = 0.15;
+    if (strength < 1.5) foldChance = personality === 'tight' ? 0.55 : personality === 'loose' ? 0.35 : 0.45;
+    else if (strength < 2.5) foldChance = personality === 'tight' ? 0.35 : 0.2;
+    else if (strength < 4) foldChance = personality === 'tight' ? 0.15 : 0.05;
+    if (toCall > pokerState.pot && strength < 3) foldChance += 0.2;
+    if (Math.random() < foldChance) return 'fold';
+    var raiseChance = 0;
+    if (strength >= 5 && pokerState.phase !== 'preflop') raiseChance = personality === 'aggro' ? 0.5 : personality === 'loose' ? 0.35 : 0.25;
+    else if (strength >= 3.5) raiseChance = personality === 'aggro' ? 0.3 : 0.15;
+    if (Math.random() < raiseChance && pokerState.cpuPlayers[seatIdx].hand) return 'raise';
+    return 'call';
+  }
+
   function runCpuTurns() {
     if (typeof window.multiplayer !== 'undefined' && window.multiplayer.isInTable()) return;
     var run = function () {
@@ -377,17 +413,6 @@
       var cpu = pokerState.cpuPlayers[seat - 1];
       if (!cpu || cpu.folded) { advanceTurn(); setTimeout(run, 200); return; }
       var toCall = pokerState.currentBet - pokerState.cpuBets[seat - 1];
-      if (Math.random() < 0.22 && pokerState.phase !== 'preflop') {
-        cpu.folded = true;
-        if (typeof window.sounds !== 'undefined') window.sounds.fold();
-        toast(CPU_NAMES[seat - 1] + ' folded');
-        advanceTurn();
-        renderCpuOpponents();
-        updatePokerUI();
-        if (countActive() <= 1) { endPokerHand(); return; }
-        setTimeout(run, 400);
-        return;
-      }
       if (toCall === 0) {
         advanceTurn();
         renderCpuOpponents();
@@ -399,6 +424,41 @@
         updatePokerUI();
         if (pokerState.currentTurn > 0) setTimeout(run, 400);
         return;
+      }
+      var decision = cpuDecide(seat - 1, toCall);
+      if (decision === 'fold') {
+        cpu.folded = true;
+        if (typeof window.sounds !== 'undefined') window.sounds.fold();
+        toast(CPU_NAMES[seat - 1] + ' folded');
+        advanceTurn();
+        renderCpuOpponents();
+        updatePokerUI();
+        if (countActive() <= 1) { endPokerHand(); return; }
+        setTimeout(run, 400);
+        return;
+      }
+      if (decision === 'raise') {
+        var raiseAmt = MIN_RAISE;
+        var totalNeed = toCall + raiseAmt;
+        var pay = totalNeed;
+        if (pay > 0 && cpu.hand) {
+          pokerState.pot += pay;
+          pokerState.cpuBets[seat - 1] += pay;
+          pokerState.currentBet = pokerState.cpuBets[seat - 1];
+          pokerState.cpuPlayers[seat - 1].hand = cpu.hand;
+          if (typeof window.sounds !== 'undefined') window.sounds.chip();
+          toast(CPU_NAMES[seat - 1] + ' raises');
+          advanceTurn();
+          renderCpuOpponents();
+          updatePokerUI();
+          if (!allBetsMatched()) { setTimeout(run, 500); return; }
+          advanceStreet();
+          renderCommunityCards();
+          renderCpuOpponents();
+          updatePokerUI();
+          if (pokerState.currentTurn > 0) setTimeout(run, 500);
+          return;
+        }
       }
       pokerState.pot += toCall;
       pokerState.cpuBets[seat - 1] = pokerState.currentBet;
@@ -514,6 +574,7 @@
   }
 
   var lastRenderedPot = 0;
+  var lastCanAct = false;
 
   function triggerPotPop() {
     const potWrap = document.querySelector('.poker-pot');
@@ -564,6 +625,8 @@
     const youEl = document.querySelector('.you');
     if (controlsEl) controlsEl.classList.toggle('your-turn', canAct);
     if (youEl) youEl.classList.toggle('your-turn', canAct);
+    if (canAct && !lastCanAct) toast('Your turn!');
+    lastCanAct = canAct;
   }
 
   function applyMultiplayerState(data) {
@@ -1243,7 +1306,21 @@
       applyMultiplayerState(e.detail);
       if (typeof window.sounds !== 'undefined') window.sounds.deal();
     });
-    window.addEventListener('multiplayerStateUpdate', function (e) { applyMultiplayerState(e.detail); });
+    window.addEventListener('multiplayerStateUpdate', function (e) {
+      var d = e.detail;
+      applyMultiplayerState(d);
+      var mySeat = window.multiplayer && window.multiplayer.getMySeatIndex ? window.multiplayer.getMySeatIndex() : null;
+      if (d.lastAction && d.lastAction.seatIndex !== mySeat) {
+        var seats = d.seats || [];
+        var actor = seats.find(function (s) { return s.seatIndex === d.lastAction.seatIndex; });
+        var name = actor && actor.playerName ? actor.playerName : 'Opponent';
+        var act = d.lastAction.action;
+        if (act === 'fold') toast(name + ' folded');
+        else if (act === 'check') toast(name + ' checks');
+        else if (act === 'call') toast(name + ' calls');
+        else if (act === 'raise') toast(name + ' raises');
+      }
+    });
     window.addEventListener('multiplayerShowdown', function (e) {
       const d = e.detail;
       if (d.stateUpdate) applyMultiplayerState(d.stateUpdate);
@@ -1297,3 +1374,5 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
+

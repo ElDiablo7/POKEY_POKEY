@@ -1435,3 +1435,33 @@ body.vegas-theme.day-theme {
 .multiplayer-seat-at-table .multiplayer-seat-cards { display: flex; gap: 2px; margin-top: 4px; }
 .multiplayer-seat-at-table .multiplayer-seat-cards .card-img { width: 48px; height: 67px; }
 .multiplayer-seat-at-table.showdown .multiplayer-seat-hand { color: var(--accent); font-size: 0.8rem; }
+
+/* Multiplayer status feedback */
+#multiplayerStatus {
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.multiplayer-status-disconnected { color: var(--text-dim); }
+.multiplayer-status-disconnected { color: var(--text-dim); }
+.multiplayer-status-connected { color: var(--success) !important; text-shadow: 0 0 8px rgba(52, 199, 89, 0.4); }
+.multiplayer-status-connecting { color: var(--accent) !important; }
+.multiplayer-status-reconnecting { color: var(--accent) !important; animation: status-pulse 1.5s ease-in-out infinite; }
+@keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+/* Poker controls — stronger your-turn feedback */
+.poker-controls.your-turn, .controls.your-turn {
+  position: relative;
+}
+.poker-controls.your-turn::before, .controls.your-turn::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-lg);
+  border: 2px solid rgba(232, 185, 35, 0.5);
+  animation: turn-border-pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes turn-border-pulse {
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 12px rgba(232, 185, 35, 0.2); }
+  50% { opacity: 1; box-shadow: 0 0 20px rgba(232, 185, 35, 0.35); }
+}
+
