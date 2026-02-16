@@ -232,36 +232,48 @@
 
       <!-- Blackjack (shown when Blackjack selected) -->
       <div class="blackjack-machine" id="blackjackMachine" hidden>
-        <div class="blackjack-table">
-          <div class="blackjack-header">🂡 BLACKJACK</div>
-          <div class="blackjack-dealer">
-            <span class="blackjack-label">Dealer</span>
-            <div class="blackjack-hand" id="bjDealerHand"></div>
-            <span class="blackjack-total" id="bjDealerTotal"></span>
-          </div>
-          <div class="blackjack-result" id="bjResult"></div>
-          <div class="blackjack-player">
-            <span class="blackjack-label">You</span>
-            <div class="blackjack-hand" id="bjPlayerHand"></div>
-            <span class="blackjack-total" id="bjPlayerTotal"></span>
-          </div>
-          <div class="blackjack-controls">
-            <div class="blackjack-bet-row">
-              <span class="blackjack-label">Bet:</span>
-              <button class="btn small blackjack-bet-btn" data-bet="100" type="button">100</button>
-              <button class="btn small blackjack-bet-btn" data-bet="250" type="button">250</button>
-              <button class="btn small blackjack-bet-btn" data-bet="500" type="button">500</button>
-              <button class="btn small blackjack-bet-btn" data-bet="1000" type="button">1000</button>
+        <div class="blackjack-cabinet">
+          <div class="blackjack-neon-border"></div>
+          <div class="blackjack-table">
+            <div class="blackjack-header">
+              <span class="blackjack-header-icon">🂡</span>
+              <span class="blackjack-header-text">BLACKJACK</span>
+              <span class="blackjack-header-21">21</span>
             </div>
-            <div class="blackjack-actions">
-              <button class="btn primary btn-shine" id="btnBjDeal" type="button">Deal</button>
-              <button class="btn btn-shine" id="btnBjHit" type="button" disabled>Hit</button>
-              <button class="btn btn-shine" id="btnBjStand" type="button" disabled>Stand</button>
-              <button class="btn btn-shine" id="btnBjDouble" type="button" disabled>Double</button>
-              <button class="btn btn-shine" id="btnBjSplit" type="button" disabled>Split</button>
+            <div class="blackjack-felt">
+              <div class="blackjack-dealer">
+                <span class="blackjack-label blackjack-label-dealer">Dealer</span>
+                <div class="blackjack-hand" id="bjDealerHand"></div>
+                <span class="blackjack-total" id="bjDealerTotal"></span>
+              </div>
+              <div class="blackjack-result" id="bjResult"></div>
+              <div class="blackjack-player">
+                <span class="blackjack-label blackjack-label-player">You</span>
+                <div class="blackjack-hand" id="bjPlayerHand"></div>
+                <span class="blackjack-total" id="bjPlayerTotal"></span>
+              </div>
+            </div>
+            <div class="blackjack-controls">
+              <div class="blackjack-bet-row">
+                <span class="blackjack-label">Bet:</span>
+                <button class="btn small blackjack-bet-btn" data-bet="100" type="button">100</button>
+                <button class="btn small blackjack-bet-btn" data-bet="250" type="button">250</button>
+                <button class="btn small blackjack-bet-btn" data-bet="500" type="button">500</button>
+                <button class="btn small blackjack-bet-btn" data-bet="1000" type="button">1000</button>
+              </div>
+              <div class="blackjack-actions">
+                <button class="btn primary btn-shine" id="btnBjDeal" type="button">Deal</button>
+                <button class="btn btn-shine" id="btnBjHit" type="button" disabled>Hit</button>
+                <button class="btn btn-shine" id="btnBjStand" type="button" disabled>Stand</button>
+                <button class="btn btn-shine" id="btnBjDouble" type="button" disabled>Double</button>
+                <button class="btn btn-shine" id="btnBjSplit" type="button" disabled>Split</button>
+              </div>
+            </div>
+            <div class="blackjack-balance">
+              <span class="blackjack-balance-label">Chips</span>
+              <span class="blackjack-balance-value" id="bjBalance">0</span>
             </div>
           </div>
-          <div class="blackjack-balance">Chips: <span id="bjBalance">0</span></div>
         </div>
       </div>
 
