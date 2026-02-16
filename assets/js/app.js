@@ -93,11 +93,10 @@
     const fallback = setTimeout(hideOverlay, 2000);
     video?.addEventListener('ended', hideOverlay);
     video?.addEventListener('error', hideOverlay);
-    video?.addEventListener('canplay', () => clearTimeout(fallback));
-    video?.addEventListener('playing', () => {
-      if (video) video.muted = false;
-      if (btnUnmute) btnUnmute.textContent = '🔊';
-    }, { once: true });
+    video?.addEventListener('canplay', function () {
+      clearTimeout(fallback);
+      video.play().catch(function () {});
+    });
     video?.addEventListener('timeupdate', () => {
       if (video.duration && !isNaN(video.duration) && video.currentTime >= video.duration - BOOT_VIDEO_TRIM_END) {
         video.pause();
@@ -106,9 +105,17 @@
     });
     btnSkip?.addEventListener('click', () => { clearTimeout(fallback); hideOverlay(); });
     btnUnmute?.addEventListener('click', () => {
-      if (video) video.muted = false;
+      if (video) {
+        video.muted = false;
+        video.play().catch(function () {});
+      }
       if (btnUnmute) btnUnmute.textContent = '🔊';
     });
+
+    video?.addEventListener('loadeddata', function () {
+      video.play().catch(function () {});
+    });
+    if (video?.readyState >= 2) video.play().catch(function () {});
   }
 
   // Modals

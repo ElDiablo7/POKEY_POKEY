@@ -103,7 +103,7 @@ body.vegas-theme {
   border-radius: var(--radius);
 }
 
-.boot-unmute { top: 16px; right: 70px; }
+.boot-unmute { top: 16px; right: 120px; }
 .boot-skip { top: 16px; right: 16px; }
 
 .boot-unmute:hover, .boot-skip:hover {
