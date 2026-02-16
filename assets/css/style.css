@@ -649,6 +649,143 @@ body.vegas-theme {
 @keyframes dice-roll { 0% { transform: rotate(0deg) scale(1.1); } 50% { transform: rotate(180deg) scale(1.05); } 100% { transform: rotate(360deg) scale(1); } }
 .dice-roll-btn { pointer-events: auto; }
 
+/* Street Dice machine — Vegas style */
+.dice-machine, .slots-machine { margin-bottom: 24px; }
+
+.dice-cabinet {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #1a1e28 0%, #0d1117 100%);
+  border: 2px solid #5c4033;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4), 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 35px rgba(232, 185, 35, 0.12);
+}
+
+.dice-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(232, 185, 35, 0.3);
+}
+
+.dice-header-icon { font-size: 1.8rem; }
+.dice-header-text {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  letter-spacing: 0.15em;
+  color: #fff;
+  text-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent-glow);
+}
+
+.dice-rules-btn {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.dice-rules-toggle, .dice-bet-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dice-label { font-size: 0.85rem; color: var(--text-dim); margin-right: 6px; }
+.dice-mode-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(232, 185, 35, 0.3) !important;
+  color: var(--text-dim);
+}
+.dice-mode-btn.primary, .dice-mode-btn:focus {
+  background: rgba(232, 185, 35, 0.15) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent);
+}
+
+.dice-arena {
+  padding: 28px;
+}
+
+.dice-surface {
+  background: radial-gradient(ellipse 90% 85% at 50% 50%, #0d5c2e 0%, #0a4523 50%, #083d1e 100%);
+  border-radius: 20px;
+  padding: 28px;
+  border: 4px solid #5c4033;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+.dice-display {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.dice-die {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 0 2px rgba(232, 185, 35, 0.4), 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+  transition: transform 0.2s ease !important;
+}
+
+.dice-die.rolling {
+  animation: dice-roll 0.45s ease-in-out !important;
+}
+
+.dice-status {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent);
+  min-height: 1.5em;
+  text-shadow: 0 0 8px var(--accent-glow);
+}
+
+.dice-point {
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
+
+.dice-controls {
+  padding: 16px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(232, 185, 35, 0.2);
+}
+
+.dice-bet-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(232, 185, 35, 0.35) !important;
+  color: var(--accent);
+}
+.dice-bet-btn.primary, .dice-bet-btn:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 12px var(--accent-glow) !important;
+}
+
+.dice-roll-btn {
+  font-size: 1.1rem !important;
+  padding: 10px 28px !important;
+}
+
+.dice-balance {
+  padding: 12px 20px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
 /* Blackjack — Vegas Glitz */
 .blackjack-machine, .slots-machine {
   margin-bottom: 24px;
@@ -1262,6 +1399,16 @@ body.vegas-theme.day-theme {
 .multiplayer-seat { padding: 0.2rem 0; }
 .multiplayer-seat.empty { color: var(--text-dim); }
 .multiplayer-table-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* CPU opponents (single-player) — same layout as multiplayer */
+.poker-cpu-opponents {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  min-height: 60px;
+}
 
 /* Multiplayer opponents on table */
 .multiplayer-opponents {

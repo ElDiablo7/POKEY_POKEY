@@ -4,6 +4,7 @@
 const GAMES = [
   { id: 'holdem', name: "Texas Hold'em", icon: '🃏', desc: '2 hole + 5 community', tagline: 'Online multiplayer • 2 hole + 5 community' },
   { id: 'blackjack', name: 'Blackjack', icon: '🂡', desc: 'Beat the dealer to 21', tagline: 'Beat the dealer to 21' },
+  { id: 'dice', name: 'Street Dice', icon: '🎲', desc: 'Street or prison rules', tagline: 'Shoot the dice • Street craps style' },
   { id: 'slots', name: 'Slots', icon: '🎰', desc: '5-reel Vegas slots', tagline: '5-reel Vegas slots' },
   { id: 'omaha', name: 'Omaha', icon: '♦', desc: '4 hole + 5 community', tagline: '4 hole + 5 community • coming soon' },
   { id: 'stud', name: '7-Card Stud', icon: '♠', desc: 'Classic stud poker', tagline: 'Classic stud • coming soon' },
@@ -61,16 +62,19 @@ function switchGame(gameId) {
   const pokerControls = document.getElementById('pokerControls');
   const blackjackMachine = document.getElementById('blackjackMachine');
   const slotsMachine = document.getElementById('slotsMachine');
+  const diceMachine = document.getElementById('diceMachine');
 
   const showPoker = ['holdem', 'omaha', 'stud', 'tourney'].includes(gameId);
   const showBlackjack = gameId === 'blackjack';
   const showSlots = gameId === 'slots';
+  const showDice = gameId === 'dice';
 
   if (pokerTable) pokerTable.hidden = !showPoker;
   if (pokerStatus) pokerStatus.hidden = !showPoker;
   if (pokerControls) pokerControls.hidden = !showPoker;
   if (blackjackMachine) blackjackMachine.hidden = !showBlackjack;
   if (slotsMachine) slotsMachine.hidden = !showSlots;
+  if (diceMachine) diceMachine.hidden = !showDice;
 
   // Initialize game-specific logic
   if (typeof onGameSwitch === 'function') onGameSwitch(gameId);

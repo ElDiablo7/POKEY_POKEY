@@ -9,6 +9,7 @@
     table: 'grx_table_chips',
     daily: 'grx_daily_claimed',
     theme: 'grx_theme',
+    sound: 'grx_sound',
   };
 
   let walletChips = 10000;
@@ -27,6 +28,9 @@
     if (t != null) tableChips = parseInt(t, 10);
     const theme = localStorage.getItem(STORAGE_KEYS.theme);
     if (theme === 'day') document.body.classList.add('day-theme');
+    if (typeof window.sounds !== 'undefined') window.sounds.setEnabled(localStorage.getItem(STORAGE_KEYS.sound) !== 'off');
+    var sb = document.getElementById('btnSoundToggle');
+    if (sb) sb.textContent = 'Sound: ' + (localStorage.getItem(STORAGE_KEYS.sound) !== 'off' ? 'On' : 'Off');
     updateChipDisplays();
   }
 
@@ -58,6 +62,7 @@
     el.textContent = msg;
     container.appendChild(el);
     setTimeout(() => el.remove(), 3000);
+    if (typeof window.sounds !== 'undefined') window.sounds.toast();
   }
 
   function log(msg) {
@@ -122,12 +127,16 @@
   function initModals() {
     const helpModal = document.getElementById('helpModal');
     const settingsModal = document.getElementById('settingsModal');
+    const diceRulesModal = document.getElementById('diceRulesModal');
     document.getElementById('btnHelp')?.addEventListener('click', () => helpModal?.showModal());
     document.getElementById('btnSettings')?.addEventListener('click', () => settingsModal?.showModal());
+    document.getElementById('btnDiceRules')?.addEventListener('click', () => diceRulesModal?.showModal());
     document.getElementById('btnCloseHelp')?.addEventListener('click', () => helpModal?.close());
     document.getElementById('btnCloseSettings')?.addEventListener('click', () => settingsModal?.close());
+    document.getElementById('btnCloseDiceRules')?.addEventListener('click', () => diceRulesModal?.close());
     helpModal?.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.close(); });
     settingsModal?.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.close(); });
+    diceRulesModal?.addEventListener('click', (e) => { if (e.target === diceRulesModal) diceRulesModal.close(); });
   }
 
   // Chip actions
@@ -211,17 +220,21 @@
     });
   }
 
-  // Poker - Texas Hold'em full game loop
+  // Poker - Texas Hold'em full game loop (4 players: you + 3 AI)
   const SB = 10, BB = 20, MIN_RAISE = 20;
+  const NUM_CPU = 3;
+  const CPU_NAMES = ['Chip', 'Ace', 'Bluff'];
   let pokerState = {
     phase: 'idle',
     pot: 0,
     currentBet: 0,
     playerBet: 0,
     playerFolded: false,
-    cpuFolded: false,
-    cpuHand: [],
+    cpuPlayers: [],
     communityRevealed: 0,
+    currentTurn: 0,
+    dealerSeat: 0,
+    cpuBets: [],
   };
 
   function pokerDeal() {
@@ -229,22 +242,41 @@
     if (tableChips < BB) { toast('Not enough chips on table'); return; }
     pokerDeck = shuffle(createDeck());
     playerHand = pokerDeck.splice(0, 2);
-    pokerState.cpuHand = pokerDeck.splice(0, 2);
+    pokerState.cpuPlayers = [];
+    pokerState.cpuBets = [];
+    for (var i = 0; i < NUM_CPU; i++) {
+      pokerState.cpuPlayers.push({ hand: pokerDeck.splice(0, 2), folded: false });
+      pokerState.cpuBets.push(0);
+    }
     pokerState.communityRevealed = 0;
     communityCards = [];
-    const postBB = Math.min(BB, tableChips);
-    const postSB = Math.min(SB, tableChips - postBB);
-    tableChips -= (postBB + postSB);
-    pokerState.pot = BB + SB;
+    pokerState.dealerSeat = ((pokerState.dealerSeat ?? -1) + 1) % 4;
+    var dealer = pokerState.dealerSeat;
+    var sbSeat = (dealer + 1) % 4;
+    var bbSeat = (dealer + 2) % 4;
+    var utgSeat = (dealer + 3) % 4;
+    pokerState.pot = SB + BB;
     pokerState.currentBet = BB;
-    pokerState.playerBet = postBB;
+    pokerState.playerBet = (bbSeat === 0 ? BB : (sbSeat === 0 ? SB : 0));
+    pokerState.cpuBets = [0, 0, 0];
+    if (sbSeat > 0) pokerState.cpuBets[sbSeat - 1] = SB;
+    if (bbSeat > 0) pokerState.cpuBets[bbSeat - 1] = BB;
+    if (sbSeat === 0) tableChips -= SB;
+    if (bbSeat === 0) tableChips -= BB;
     pokerState.playerFolded = false;
-    pokerState.cpuFolded = false;
+    pokerState.currentTurn = utgSeat;
     pokerState.phase = 'preflop';
     saveState();
+    if (typeof window.sounds !== 'undefined') window.sounds.deal();
     renderPokerHand();
     renderCommunityCards();
+    renderCpuOpponents();
     updatePokerUI();
+    var oppEl = document.getElementById('pokerCpuOpponents');
+    var mpEl = document.getElementById('multiplayerOpponents');
+    if (oppEl) oppEl.hidden = false;
+    if (mpEl) mpEl.hidden = true;
+    runCpuTurns();
   }
 
   function renderPokerHand() {
@@ -267,6 +299,25 @@
     }
   }
 
+  function renderCpuOpponents() {
+    var el = document.getElementById('pokerCpuOpponents');
+    if (!el || typeof window.multiplayer !== 'undefined' && window.multiplayer.isInTable()) return;
+    if (pokerState.phase === 'idle' || !pokerState.cpuPlayers || pokerState.cpuPlayers.length === 0) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    var cardBack = typeof formatCardBack === 'function' ? formatCardBack() : '';
+    el.innerHTML = pokerState.cpuPlayers.map(function (cpu, i) {
+      var folded = cpu.folded ? ' folded' : '';
+      return '<div class="multiplayer-seat-at-table' + folded + '">' +
+        '<span class="multiplayer-seat-name">' + CPU_NAMES[i] + '</span>' +
+        (cpu.folded ? '<span class="multiplayer-seat-folded">Folded</span>' :
+          '<div class="multiplayer-seat-cards">' + cardBack + cardBack + '</div>') +
+        '</div>';
+    }).join('');
+  }
+
   function renderCommunityCards() {
     const toShow = pokerState.communityRevealed;
     for (let i = 1; i <= 5; i++) {
@@ -283,90 +334,182 @@
   }
 
   function advanceStreet() {
+    pokerState.currentBet = 0;
+    pokerState.playerBet = 0;
+    pokerState.cpuBets = [0, 0, 0];
+    var dealer = pokerState.dealerSeat;
+    for (var i = 1; i <= 4; i++) {
+      var seat = (dealer + i) % 4;
+      if (seat === 0 && !pokerState.playerFolded) { pokerState.currentTurn = 0; break; }
+      if (seat > 0 && !pokerState.cpuPlayers[seat - 1].folded) { pokerState.currentTurn = seat; break; }
+    }
     if (pokerState.phase === 'preflop') {
       pokerDeck.shift();
       communityCards = pokerDeck.splice(0, 3);
       pokerState.communityRevealed = 3;
       pokerState.phase = 'flop';
-      pokerState.currentBet = 0;
-      pokerState.playerBet = 0;
     } else if (pokerState.phase === 'flop') {
       pokerDeck.shift();
       communityCards.push(pokerDeck.shift());
       pokerState.communityRevealed = 4;
       pokerState.phase = 'turn';
-      pokerState.currentBet = 0;
-      pokerState.playerBet = 0;
     } else if (pokerState.phase === 'turn') {
       pokerDeck.shift();
       communityCards.push(pokerDeck.shift());
       pokerState.communityRevealed = 5;
       pokerState.phase = 'river';
-      pokerState.currentBet = 0;
-      pokerState.playerBet = 0;
     } else if (pokerState.phase === 'river') {
       pokerState.phase = 'showdown';
       endPokerHand();
       return;
     }
     renderCommunityCards();
+    renderCpuOpponents();
     updatePokerUI();
   }
 
-  function cpuAct() {
-    if (pokerState.cpuFolded || pokerState.playerFolded) return;
-    if (Math.random() < 0.2 && pokerState.phase !== 'preflop') {
-      pokerState.cpuFolded = true;
-      tableChips += pokerState.pot;
-      toast('CPU folded. You win!');
-      pokerState.phase = 'idle';
-      saveState();
-      updateChipDisplays();
-      updatePokerUI();
-      return;
-    }
-    const toCall = pokerState.currentBet;
-    if (toCall === 0) {
+  function runCpuTurns() {
+    if (typeof window.multiplayer !== 'undefined' && window.multiplayer.isInTable()) return;
+    var run = function () {
+      if (pokerState.phase === 'idle' || pokerState.phase === 'showdown') return;
+      var seat = pokerState.currentTurn;
+      if (seat === 0) return;
+      var cpu = pokerState.cpuPlayers[seat - 1];
+      if (!cpu || cpu.folded) { advanceTurn(); setTimeout(run, 200); return; }
+      var toCall = pokerState.currentBet - pokerState.cpuBets[seat - 1];
+      if (Math.random() < 0.22 && pokerState.phase !== 'preflop') {
+        cpu.folded = true;
+        if (typeof window.sounds !== 'undefined') window.sounds.fold();
+        toast(CPU_NAMES[seat - 1] + ' folded');
+        advanceTurn();
+        renderCpuOpponents();
+        updatePokerUI();
+        if (countActive() <= 1) { endPokerHand(); return; }
+        setTimeout(run, 400);
+        return;
+      }
+      if (toCall === 0) {
+        advanceTurn();
+        renderCpuOpponents();
+        updatePokerUI();
+        if (!allBetsMatched()) { setTimeout(run, 400); return; }
+        advanceStreet();
+        renderCommunityCards();
+        renderCpuOpponents();
+        updatePokerUI();
+        if (pokerState.currentTurn > 0) setTimeout(run, 400);
+        return;
+      }
+      pokerState.pot += toCall;
+      pokerState.cpuBets[seat - 1] = pokerState.currentBet;
+      if (typeof window.sounds !== 'undefined') window.sounds.chip();
+      toast(CPU_NAMES[seat - 1] + ' calls');
+      advanceTurn();
+      if (!allBetsMatched()) { setTimeout(run, 400); return; }
       advanceStreet();
-      return;
+      renderCommunityCards();
+      renderCpuOpponents();
+      updatePokerUI();
+      if (pokerState.currentTurn > 0) setTimeout(run, 400);
+    };
+    setTimeout(run, 300);
+  }
+
+  function advanceTurn() {
+    var start = pokerState.currentTurn;
+    for (var i = 1; i <= 4; i++) {
+      var seat = (start + i) % 4;
+      if (seat === 0 && !pokerState.playerFolded) { pokerState.currentTurn = 0; return; }
+      if (seat > 0 && !pokerState.cpuPlayers[seat - 1].folded) { pokerState.currentTurn = seat; return; }
     }
-    pokerState.pot += toCall;
-    pokerState.playerBet = 0;
-    pokerState.currentBet = 0;
-    advanceStreet();
+    pokerState.currentTurn = 0;
+  }
+
+  function countActive() {
+    var n = pokerState.playerFolded ? 0 : 1;
+    for (var i = 0; i < NUM_CPU; i++) if (!pokerState.cpuPlayers[i].folded) n++;
+    return n;
+  }
+
+  function allBetsMatched() {
+    var target = pokerState.currentBet;
+    if (!pokerState.playerFolded && pokerState.playerBet < target) return false;
+    for (var i = 0; i < NUM_CPU; i++) {
+      if (!pokerState.cpuPlayers[i].folded && pokerState.cpuBets[i] < target) return false;
+    }
+    return true;
+  }
+
+  function cpuAct() {
+    if (typeof window.multiplayer !== 'undefined' && window.multiplayer.isInTable()) return;
+    advanceTurn();
+    if (pokerState.currentTurn === 0) return;
+    runCpuTurns();
   }
 
   function endPokerHand() {
-    const playerBest = typeof bestHand === 'function' && playerHand.length + communityCards.length >= 5
-      ? bestHand([...playerHand, ...communityCards]) : null;
-    const cpuBest = typeof bestHand === 'function' && pokerState.cpuHand.length + communityCards.length >= 5
-      ? bestHand([...pokerState.cpuHand, ...communityCards]) : null;
-    let winner = 'push';
-    if (pokerState.playerFolded) winner = 'cpu';
-    else if (pokerState.cpuFolded) winner = 'player';
-    else if (playerBest && cpuBest) {
-      if (playerBest.rank > cpuBest.rank) winner = 'player';
-      else if (cpuBest.rank > playerBest.rank) winner = 'cpu';
-      else if (playerBest.rank === cpuBest.rank && typeof highCardsCompare === 'function') {
-        const c = highCardsCompare(playerBest.highCards, cpuBest.highCards);
-        if (c > 0) winner = 'player';
-        else if (c < 0) winner = 'cpu';
+    var hands = [];
+    if (!pokerState.playerFolded) {
+      var ph = typeof bestHand === 'function' && playerHand.length + communityCards.length >= 5
+        ? bestHand([...playerHand, ...communityCards]) : null;
+      hands.push({ seat: 0, best: ph });
+    }
+    for (var i = 0; i < NUM_CPU; i++) {
+      if (!pokerState.cpuPlayers[i].folded) {
+        var ch = typeof bestHand === 'function' && pokerState.cpuPlayers[i].hand.length + communityCards.length >= 5
+          ? bestHand([...pokerState.cpuPlayers[i].hand, ...communityCards]) : null;
+        hands.push({ seat: i + 1, best: ch });
       }
     }
-    if (winner === 'player') {
-      tableChips += pokerState.pot;
+    if (hands.length === 0) {
+      pokerState.phase = 'idle';
+      pokerState.pot = 0;
+      updatePokerUI();
+      return;
+    }
+    if (hands.length === 1) {
+      if (hands[0].seat === 0) {
+        tableChips += pokerState.pot;
+        if (typeof window.sounds !== 'undefined') window.sounds.win();
+        triggerWinCelebration();
+        toast('You win!');
+      } else {
+        if (typeof window.sounds !== 'undefined') window.sounds.lose();
+        toast(CPU_NAMES[hands[0].seat - 1] + ' wins.');
+      }
+      pokerState.phase = 'idle';
+      pokerState.pot = 0;
+      saveState();
+      updateChipDisplays();
+      renderCpuOpponents();
+      updatePokerUI();
+      return;
+    }
+    var best = hands[0];
+    for (var j = 1; j < hands.length; j++) {
+      var a = best.best;
+      var b = hands[j].best;
+      if (!b) continue;
+      if (!a || b.rank > a.rank || (b.rank === a.rank && typeof highCardsCompare === 'function' && highCardsCompare(b.highCards, a.highCards) > 0)) best = hands[j];
+    }
+    var winners = hands.filter(function (h) {
+      return h.best && best.best && h.best.rank === best.best.rank && (typeof highCardsCompare !== 'function' || highCardsCompare(h.best.highCards, best.best.highCards) === 0);
+    });
+    var winAmount = Math.floor(pokerState.pot / winners.length);
+    if (winners.some(function (w) { return w.seat === 0; })) {
+      tableChips += winAmount;
+      if (typeof window.sounds !== 'undefined') window.sounds.win();
       triggerWinCelebration();
-      toast('You win! ' + (playerBest ? playerBest.name : ''));
-    } else if (winner === 'cpu') {
-      toast('CPU wins.');
+      toast('You win! ' + (best.best ? best.best.name : '') + (winners.length > 1 ? ' (split)' : ''));
     } else {
-      tableChips += Math.floor(pokerState.pot / 2);
-      toast('Push.');
+      if (typeof window.sounds !== 'undefined') window.sounds.lose();
+      toast(winners.map(function (w) { return CPU_NAMES[w.seat - 1]; }).join(', ') + ' win' + (winners.length > 1 ? '' : 's') + '.');
     }
     pokerState.phase = 'idle';
     pokerState.pot = 0;
     saveState();
     updateChipDisplays();
+    renderCpuOpponents();
     updatePokerUI();
   }
 
@@ -460,6 +603,8 @@
     } else if (opponentsEl && (!window.multiplayer || !window.multiplayer.isInTable())) {
       opponentsEl.hidden = true;
     }
+    var cpuOpp = document.getElementById('pokerCpuOpponents');
+    if (cpuOpp) cpuOpp.hidden = true;
     saveState();
     renderPokerHand();
     renderCommunityCards();
@@ -471,6 +616,7 @@
     if (typeof window.multiplayer !== 'undefined' && window.multiplayer.isInTable() && window.multiplayer.sendAction('fold')) return;
     if (pokerState.phase === 'idle' || pokerState.playerFolded) return;
     pokerState.playerFolded = true;
+    if (typeof window.sounds !== 'undefined') window.sounds.fold();
     toast('Folded');
     pokerState.phase = 'showdown';
     endPokerHand();
@@ -481,6 +627,7 @@
     if (pokerState.phase === 'idle' || pokerState.playerFolded) return;
     const callAmount = pokerState.currentBet - pokerState.playerBet;
     if (callAmount !== 0) return;
+    if (typeof window.sounds !== 'undefined') window.sounds.chip();
     toast('Check');
     cpuAct();
   }
@@ -494,6 +641,7 @@
     tableChips -= pay;
     pokerState.playerBet += pay;
     pokerState.pot += pay;
+    if (typeof window.sounds !== 'undefined') window.sounds.chip();
     toast('Call ' + pay);
     saveState();
     updateChipDisplays();
@@ -514,6 +662,7 @@
     pokerState.playerBet += pay;
     pokerState.currentBet = pokerState.playerBet;
     pokerState.pot += pay;
+    if (typeof window.sounds !== 'undefined') window.sounds.chip();
     toast('Raise');
     saveState();
     updateChipDisplays();
@@ -524,11 +673,13 @@
   function resetPokerTable() {
     playerHand = [];
     communityCards = [];
-    pokerState = { phase: 'idle', pot: 0, currentBet: 0, playerBet: 0, playerFolded: false, cpuFolded: false, cpuHand: [], communityRevealed: 0 };
+    pokerState = { phase: 'idle', pot: 0, currentBet: 0, playerBet: 0, playerFolded: false, cpuPlayers: [], communityRevealed: 0, currentTurn: 0, dealerSeat: 0, cpuBets: [] };
     for (let i = 1; i <= 5; i++) {
       const slot = document.getElementById('c' + i);
       if (slot) { slot.classList.remove('has-card'); slot.textContent = ''; }
     }
+    var cpuOpp = document.getElementById('pokerCpuOpponents');
+    if (cpuOpp) cpuOpp.hidden = true;
     const hand = document.getElementById('playerHand');
     hand?.querySelectorAll('.cardface').forEach((s, i) => {
       s.style.display = i < 2 ? 'flex' : 'none';
@@ -661,6 +812,7 @@
     bjDealerHand = bjDeck.splice(0, 2);
     bjBalance -= bjBet;
     bjDealt = true;
+    if (typeof window.sounds !== 'undefined') window.sounds.deal();
     saveState();
     walletChips = bjBalance;
     document.getElementById('btnBjDeal').disabled = true;
@@ -677,7 +829,9 @@
     bjPlayerHands = [[hand[0]], [hand[1]]];
     bjBetPerHand = [bjBet, bjBet];
     bjPlayerHands[0].push(bjDeck.shift());
+    if (typeof window.sounds !== 'undefined') window.sounds.card();
     bjPlayerHands[1].push(bjDeck.shift());
+    if (typeof window.sounds !== 'undefined') window.sounds.card();
     bjBalance -= bjBet;
     bjCurrentHandIndex = 0;
     bjSplitMode = true;
@@ -692,6 +846,7 @@
     const hand = bjPlayerHands[bjCurrentHandIndex];
     if (!hand || bjTotal(hand) >= 21) return;
     hand.push(bjDeck.shift());
+    if (typeof window.sounds !== 'undefined') window.sounds.card();
     bjRender();
     if (bjTotal(hand) > 21) bjStand();
   }
@@ -730,6 +885,7 @@
       else { results.push(`Hand ${i + 1}: Push`); totalWin += bet; }
     });
     bjBalance += totalWin;
+    if (typeof window.sounds !== 'undefined') (totalWin > 0 ? window.sounds.win() : (results.some(function (r) { return r.indexOf('Lose') >= 0 || r.indexOf('Bust') >= 0; }) ? window.sounds.lose() : window.sounds.chip()));
     document.getElementById('bjResult').textContent = results.join(' • ');
     document.getElementById('btnBjDeal').disabled = false;
     walletChips = bjBalance;
@@ -777,6 +933,7 @@
     if (slotsSpinning || slotsBalance < slotsBet) return;
     slotsSpinning = true;
     slotsBalance -= slotsBet;
+    if (typeof window.sounds !== 'undefined') window.sounds.slots();
     document.getElementById('btnSlotsSpin').disabled = true;
     const reels = [1, 2, 3, 4, 5].map(() => SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]);
     [1, 2, 3, 4, 5].forEach((i, idx) => {
@@ -814,6 +971,7 @@
       else if (maxCount >= 3) win = slotsBet * 5;
       else if (maxCount >= 2) win = slotsBet * 1;
       slotsBalance += win;
+      if (typeof window.sounds !== 'undefined') (win > 0 ? window.sounds.win() : window.sounds.chip());
       document.getElementById('slotsResult').textContent = win > 0 ? `Win: ${win} chips!` : 'No win';
       walletChips = slotsBalance;
       saveState();
@@ -847,6 +1005,10 @@
       slotsBalance = walletChips;
       document.getElementById('slotsBalance').textContent = slotsBalance.toLocaleString();
       document.getElementById('btnSlotsSpin').disabled = slotsBalance < 50;
+    } else if (gameId === 'dice') {
+      diceBalance = walletChips;
+      document.getElementById('diceBalance').textContent = diceBalance.toLocaleString();
+      document.getElementById('btnStreetDiceRoll').disabled = diceBalance < diceBet;
     }
   }
   window.onGameSwitch = onGameSwitch;
@@ -859,6 +1021,18 @@
     const inpStack = document.getElementById('inpStack');
     if (inpWallet) inpWallet.value = walletChips;
     if (inpStack) inpStack.value = tableChips;
+    var btnSound = document.getElementById('btnSoundToggle');
+    if (btnSound && typeof window.sounds !== 'undefined') {
+      btnSound.textContent = 'Sound: ' + (window.sounds.enabled() ? 'On' : 'Off');
+      btnSound.addEventListener('click', function () {
+        if (typeof window.sounds !== 'undefined') {
+          window.sounds.toggle();
+          btnSound.textContent = 'Sound: ' + (window.sounds.enabled() ? 'On' : 'Off');
+          localStorage.setItem(STORAGE_KEYS.sound, window.sounds.enabled() ? 'on' : 'off');
+          if (window.sounds.enabled()) window.sounds.toast();
+        }
+      });
+    }
 
     document.getElementById('btnSaveSettings')?.addEventListener('click', () => {
       const name = inpName?.value?.trim() || 'Guest';
@@ -914,6 +1088,132 @@
     }
   });
 
+  // Street Dice — Street rules (craps) + Prison rules
+  let diceBalance = 0;
+  let diceBet = 100;
+  let diceMode = 'street';
+  let dicePoint = null;
+  let dicePhase = 'comeout';
+
+  function initStreetDice() {
+    diceBalance = walletChips;
+    document.getElementById('diceBalance').textContent = diceBalance.toLocaleString();
+
+    document.querySelectorAll('.dice-mode-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (dicePhase === 'point') return;
+        document.querySelectorAll('.dice-mode-btn').forEach(function (b) { b.classList.remove('primary'); });
+        btn.classList.add('primary');
+        diceMode = btn.dataset.mode;
+        dicePoint = null;
+        dicePhase = 'comeout';
+        document.getElementById('dicePoint').textContent = '';
+        document.getElementById('diceStatus').textContent = diceMode === 'street' ? 'Place bet and roll (come-out)' : 'Place bet and roll';
+        document.getElementById('btnStreetDiceRoll').disabled = diceBalance < diceBet;
+      });
+    });
+
+    document.querySelectorAll('.dice-bet-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (dicePhase === 'point') return;
+        document.querySelectorAll('.dice-bet-btn').forEach(function (b) { b.classList.remove('primary'); });
+        btn.classList.add('primary');
+        diceBet = parseInt(btn.dataset.bet, 10);
+        document.getElementById('btnStreetDiceRoll').disabled = diceBalance < diceBet;
+      });
+    });
+
+    document.getElementById('btnStreetDiceRoll')?.addEventListener('click', streetDiceRoll);
+  }
+
+  function streetDiceRoll() {
+    if (diceBalance < diceBet) { toast('Not enough chips'); return; }
+    var d1 = document.getElementById('streetDice1');
+    var d2 = document.getElementById('streetDice2');
+    if (!d1 || !d2) return;
+
+    d1.classList.add('rolling');
+    d2.classList.add('rolling');
+    if (typeof window.sounds !== 'undefined') window.sounds.dice();
+    var v1 = 1 + Math.floor(Math.random() * 6);
+    var v2 = 1 + Math.floor(Math.random() * 6);
+    var total = v1 + v2;
+    var diceBase = 'assets/img/dice';
+
+    setTimeout(function () {
+      d1.src = diceBase + '/d' + v1 + '.svg';
+      d2.src = diceBase + '/d' + v2 + '.svg';
+      d1.dataset.value = String(v1);
+      d2.dataset.value = String(v2);
+      d1.classList.remove('rolling');
+      d2.classList.remove('rolling');
+
+      if (diceMode === 'prison') {
+        if (total === 7 || total === 11) {
+          diceBalance += diceBet;
+          if (typeof window.sounds !== 'undefined') window.sounds.win();
+          toast('Win! ' + v1 + '+' + v2 + '=' + total);
+          document.getElementById('diceStatus').textContent = 'Win!';
+        } else if (total === 2 || total === 3 || total === 12) {
+          diceBalance -= diceBet;
+          if (typeof window.sounds !== 'undefined') window.sounds.lose();
+          toast('Craps! ' + v1 + '+' + v2 + '=' + total);
+          document.getElementById('diceStatus').textContent = 'Lose (craps)';
+        } else {
+          toast('Push. ' + v1 + '+' + v2 + '=' + total);
+          document.getElementById('diceStatus').textContent = 'Push';
+        }
+        document.getElementById('dicePoint').textContent = '';
+      } else {
+        if (dicePhase === 'comeout') {
+          if (total === 7 || total === 11) {
+            diceBalance += diceBet;
+            if (typeof window.sounds !== 'undefined') window.sounds.win();
+            toast('Natural! Win!');
+            document.getElementById('diceStatus').textContent = 'Win! (natural)';
+            document.getElementById('dicePoint').textContent = '';
+          } else if (total === 2 || total === 3 || total === 12) {
+            diceBalance -= diceBet;
+            if (typeof window.sounds !== 'undefined') window.sounds.lose();
+            toast('Craps!');
+            document.getElementById('diceStatus').textContent = 'Lose (craps)';
+            document.getElementById('dicePoint').textContent = '';
+          } else {
+            dicePoint = total;
+            dicePhase = 'point';
+            document.getElementById('diceStatus').textContent = 'Point is ' + dicePoint + ' — roll again';
+            document.getElementById('dicePoint').textContent = 'Point: ' + dicePoint;
+          }
+        } else {
+          if (total === dicePoint) {
+            diceBalance += diceBet;
+            if (typeof window.sounds !== 'undefined') window.sounds.win();
+            toast('Point! Win!');
+            document.getElementById('diceStatus').textContent = 'Win! (hit point)';
+            document.getElementById('dicePoint').textContent = '';
+            dicePoint = null;
+            dicePhase = 'comeout';
+          } else if (total === 7) {
+            diceBalance -= diceBet;
+            if (typeof window.sounds !== 'undefined') window.sounds.lose();
+            toast('Seven out');
+            document.getElementById('diceStatus').textContent = 'Lose (seven out)';
+            document.getElementById('dicePoint').textContent = '';
+            dicePoint = null;
+            dicePhase = 'comeout';
+          } else {
+            document.getElementById('diceStatus').textContent = 'Point ' + dicePoint + ' — rolled ' + total + ', roll again';
+          }
+        }
+      }
+      walletChips = diceBalance;
+      saveState();
+      updateChipDisplays();
+      document.getElementById('diceBalance').textContent = diceBalance.toLocaleString();
+      document.getElementById('btnStreetDiceRoll').disabled = diceBalance < diceBet;
+    }, 450);
+  }
+
   function initDice() {
     const diceBase = 'assets/img/dice';
     document.getElementById('btnRollDice')?.addEventListener('click', () => {
@@ -931,6 +1231,7 @@
         d2.dataset.value = String(v2);
         d1.classList.remove('rolling');
         d2.classList.remove('rolling');
+        if (typeof window.sounds !== 'undefined') window.sounds.dice();
         toast('Rolled ' + v1 + ' + ' + v2 + ' = ' + (v1 + v2));
       }, 400);
     });
@@ -938,16 +1239,26 @@
 
   function initMultiplayerListeners() {
     window.addEventListener('multiplayerTableState', function (e) { applyMultiplayerState(e.detail); });
-    window.addEventListener('multiplayerHandStarted', function (e) { applyMultiplayerState(e.detail); });
+    window.addEventListener('multiplayerHandStarted', function (e) {
+      applyMultiplayerState(e.detail);
+      if (typeof window.sounds !== 'undefined') window.sounds.deal();
+    });
     window.addEventListener('multiplayerStateUpdate', function (e) { applyMultiplayerState(e.detail); });
     window.addEventListener('multiplayerShowdown', function (e) {
       const d = e.detail;
       if (d.stateUpdate) applyMultiplayerState(d.stateUpdate);
+      var mySeat = window.multiplayer && window.multiplayer.getMySeatIndex ? window.multiplayer.getMySeatIndex() : null;
       if (d.winners && d.winners.length) {
         const msg = d.winners.map(function (w) { return w.playerName + ' wins ' + w.amount + (w.hand ? ' (' + w.hand.name + ')' : ''); }).join('; ');
         toast(msg);
-        var mySeat = window.multiplayer && window.multiplayer.getMySeatIndex ? window.multiplayer.getMySeatIndex() : null;
-        if (mySeat != null && d.winners.some(function (w) { return w.seatIndex === mySeat; })) triggerWinCelebration();
+        if (mySeat != null && d.winners.some(function (w) { return w.seatIndex === mySeat; })) {
+          if (typeof window.sounds !== 'undefined') window.sounds.win();
+          triggerWinCelebration();
+        } else if (mySeat != null && !d.winners.some(function (w) { return w.seatIndex === mySeat; })) {
+          if (typeof window.sounds !== 'undefined') window.sounds.lose();
+        } else if (typeof window.sounds !== 'undefined') {
+          window.sounds.chip();
+        }
       }
       var opponentsEl = document.getElementById('multiplayerOpponents');
       if (opponentsEl && d.revealed && d.revealed.length && typeof formatCard === 'function') {
@@ -977,6 +1288,7 @@
     initBanker();
     initPoker();
     initBlackjack();
+    initStreetDice();
     initSlots();
     initDice();
     initSettings();

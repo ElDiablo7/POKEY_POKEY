@@ -198,6 +198,9 @@
         <div class="multiplayer-opponents" id="multiplayerOpponents" hidden aria-label="Other players at table">
           <!-- Filled by JS when in multiplayer -->
         </div>
+        <div class="poker-cpu-opponents" id="pokerCpuOpponents" hidden aria-label="AI opponents">
+          <!-- Filled by JS when in single-player Hold'em -->
+        </div>
 
         <div class="community">
           <div class="slot card-slot" id="c1" data-index="0"></div>
@@ -274,6 +277,44 @@
               <span class="blackjack-balance-value" id="bjBalance">0</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Street Dice (shown when Street Dice selected) -->
+      <div class="dice-machine" id="diceMachine" hidden>
+        <div class="dice-cabinet">
+          <div class="dice-header">
+            <span class="dice-header-icon">🎲</span>
+            <span class="dice-header-text">STREET DICE</span>
+            <button class="btn ghost btn-tiny dice-rules-btn" id="btnDiceRules" type="button" title="Read the rules">Rules</button>
+          </div>
+          <div class="dice-rules-toggle">
+            <span class="dice-label">Rules:</span>
+            <button class="btn small dice-mode-btn primary" data-mode="street" type="button">Street</button>
+            <button class="btn small dice-mode-btn" data-mode="prison" type="button">Prison</button>
+          </div>
+          <div class="dice-arena">
+            <div class="dice-surface">
+              <div class="dice-display">
+                <img class="dice-img dice-die" id="streetDice1" src="assets/img/dice/d1.svg" alt="Dice 1" width="64" height="64" data-value="1">
+                <img class="dice-img dice-die" id="streetDice2" src="assets/img/dice/d1.svg" alt="Dice 2" width="64" height="64" data-value="1">
+              </div>
+              <div class="dice-status" id="diceStatus">Place bet and roll</div>
+              <div class="dice-point" id="dicePoint"></div>
+            </div>
+          </div>
+          <div class="dice-controls">
+            <div class="dice-bet-row">
+              <span class="dice-label">Bet:</span>
+              <button class="btn small dice-bet-btn" data-bet="50" type="button">50</button>
+              <button class="btn small dice-bet-btn primary" data-bet="100" type="button">100</button>
+              <button class="btn small dice-bet-btn" data-bet="250" type="button">250</button>
+              <button class="btn small dice-bet-btn" data-bet="500" type="button">500</button>
+              <button class="btn small dice-bet-btn" data-bet="1000" type="button">1000</button>
+            </div>
+            <button class="btn primary btn-shine dice-roll-btn" id="btnStreetDiceRoll" type="button">Roll</button>
+          </div>
+          <div class="dice-balance">Chips: <span id="diceBalance">0</span></div>
         </div>
       </div>
 
@@ -354,6 +395,7 @@
         <div class="module-grid">
           <div class="module-tile module-tile-hover" data-game="holdem" title="Jump to Texas Hold'em">🃏 Hold'em</div>
           <div class="module-tile module-tile-hover" data-game="blackjack" title="Jump to Blackjack">🂡 Blackjack</div>
+          <div class="module-tile module-tile-hover" data-game="dice" title="Jump to Street Dice">🎲 Street Dice</div>
           <div class="module-tile module-tile-hover" data-game="slots" title="Jump to Slot Machines">🎰 Slots</div>
           <div class="module-tile module-tile-hover" data-game="omaha" title="Jump to Omaha">♦ Omaha</div>
           <div class="module-tile module-tile-hover" data-game="stud" title="Jump to 7-Card Stud">♠ Stud</div>
@@ -398,6 +440,30 @@
     </div>
   </dialog>
 
+  <dialog class="modal modal-animate" id="diceRulesModal">
+    <div class="modal-head">
+      <h3>Street Dice Rules</h3>
+      <button class="btn ghost btn-close" id="btnCloseDiceRules" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <h4 class="modal-sub">Street Rules (full game)</h4>
+      <p class="p">Two dice. You bet, then roll.</p>
+      <ul class="ul">
+        <li><strong>Come-out roll:</strong> 7 or 11 = win instantly. 2, 3, or 12 = lose (craps).</li>
+        <li><strong>Point:</strong> 4, 5, 6, 8, 9, or 10 becomes your "point."</li>
+        <li><strong>Point phase:</strong> Keep rolling until you hit your point (win) or roll 7 (lose).</li>
+      </ul>
+      <h4 class="modal-sub">Prison Rules (single roll)</h4>
+      <p class="p">Simpler: one roll decides all.</p>
+      <ul class="ul">
+        <li><strong>7 or 11</strong> = Win</li>
+        <li><strong>2, 3, or 12</strong> = Lose (craps)</li>
+        <li><strong>4, 5, 6, 8, 9, or 10</strong> = Push (tie, bet returned)</li>
+      </ul>
+      <div class="callout callout-glow">Play chips only. No cash, no payouts.</div>
+    </div>
+  </dialog>
+
   <dialog class="modal modal-animate" id="settingsModal">
     <div class="modal-head">
       <h3>Settings</h3>
@@ -418,6 +484,11 @@
         <input id="inpStack" type="number" min="0" step="100" />
       </label>
 
+      <label class="field">
+        <span>Sound effects</span>
+        <button class="btn small btn-shine" id="btnSoundToggle" type="button">Sound: On</button>
+      </label>
+
       <div class="row">
         <button class="btn primary btn-shine" id="btnSaveSettings" type="button">Save</button>
         <button class="btn danger btn-shine" id="btnWipeLocal" type="button">Reset Local Data</button>
@@ -431,6 +502,7 @@
 
   <script src="assets/js/games.js"></script>
   <script src="assets/js/poker-engine.js"></script>
+  <script src="assets/js/sounds.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/multiplayer.js"></script>
 </body>
