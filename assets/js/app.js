@@ -348,6 +348,7 @@
     }
     if (winner === 'player') {
       tableChips += pokerState.pot;
+      triggerWinCelebration();
       toast('You win! ' + (playerBest ? playerBest.name : ''));
     } else if (winner === 'cpu') {
       toast('CPU wins.');
@@ -362,11 +363,34 @@
     updatePokerUI();
   }
 
+  var lastRenderedPot = 0;
+
+  function triggerPotPop() {
+    const potWrap = document.querySelector('.poker-pot');
+    if (potWrap) {
+      potWrap.classList.remove('pot-pop');
+      potWrap.offsetHeight;
+      potWrap.classList.add('pot-pop');
+      setTimeout(function () { potWrap.classList.remove('pot-pop'); }, 500);
+    }
+  }
+
+  function triggerWinCelebration() {
+    const el = document.getElementById('winCelebration');
+    if (!el) return;
+    el.classList.remove('celebrate');
+    el.offsetHeight;
+    el.classList.add('celebrate');
+    setTimeout(function () { el.classList.remove('celebrate'); }, 2200);
+  }
+
   function updatePokerUI() {
     const potEl = document.getElementById('pokerPot');
     const betEl = document.getElementById('pokerCurrentBet');
     const roundEl = document.getElementById('pokerRound');
     const callAmtEl = document.getElementById('callAmt');
+    if (pokerState.pot > lastRenderedPot && pokerState.pot > 0) triggerPotPop();
+    lastRenderedPot = pokerState.pot;
     if (potEl) potEl.textContent = pokerState.pot;
     if (betEl) betEl.textContent = pokerState.currentBet;
     const callAmount = pokerState.currentBet - pokerState.playerBet;
@@ -386,6 +410,10 @@
     if (checkBtn) checkBtn.disabled = !canAct || callAmount > 0;
     if (callBtn) callBtn.disabled = !canAct || callAmount <= 0;
     if (raiseBtn) raiseBtn.disabled = !canAct || tableChips < MIN_RAISE;
+    const controlsEl = document.getElementById('pokerControls');
+    const youEl = document.querySelector('.you');
+    if (controlsEl) controlsEl.classList.toggle('your-turn', canAct);
+    if (youEl) youEl.classList.toggle('your-turn', canAct);
   }
 
   function applyMultiplayerState(data) {
@@ -911,6 +939,8 @@
       if (d.winners && d.winners.length) {
         const msg = d.winners.map(function (w) { return w.playerName + ' wins ' + w.amount + (w.hand ? ' (' + w.hand.name + ')' : ''); }).join('; ');
         toast(msg);
+        var mySeat = window.multiplayer && window.multiplayer.getMySeatIndex ? window.multiplayer.getMySeatIndex() : null;
+        if (mySeat != null && d.winners.some(function (w) { return w.seatIndex === mySeat; })) triggerWinCelebration();
       }
       var opponentsEl = document.getElementById('multiplayerOpponents');
       if (opponentsEl && d.revealed && d.revealed.length && typeof formatCard === 'function') {
